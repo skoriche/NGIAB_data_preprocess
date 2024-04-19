@@ -37,7 +37,8 @@ def verify_indices(gpkg: str = file_paths.conus_hydrofabric()) -> None:
 
 
 # whenever this is imported, check if the indices are correct
-verify_indices()
+if file_paths.conus_hydrofabric().is_file():
+    verify_indices()
 
 
 def blob_to_geometry(blob: bytes) -> Union[Point, Polygon]:
