@@ -12,7 +12,8 @@ exclude = ["tests*"]
 
 [project]
 name = "ngiab_data_preprocess"
-version = "0.0.1"
+#version = "0.0.1"
+dynamic = ["version"]
 authors = [{ name = "Josh Cunningham", email = "josh.cu@gmail.com" }]
 description = "A small example package"
 readme = "README.md"
