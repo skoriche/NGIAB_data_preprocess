@@ -45,6 +45,7 @@ dependencies = [
     "numba==0.59.1",
     "exactextract==0.2.0.dev0",
     "numpy==1.26.4",
+    "flaskwebgui==1.1.0",
 ]
 
 [project.urls]
