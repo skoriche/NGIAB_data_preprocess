@@ -4,7 +4,7 @@
 This is still in development, your feedback and patience is appreciated.
 If you have any suggestions to improve or find bugs that need fixing, submit an issue here on github.
 
-![map screenshot](./map_app/static/resources/screenshot.png)
+![map screenshot](https://github.com/AlabamaWaterInstitute/NGIAB_data_preprocess/blob/main/map_app/static/resources/screenshot.png)
 
 ## Aproximate workflow
 1) Select the water basins you're interested in on the map
