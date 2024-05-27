@@ -85,7 +85,7 @@ async function forcings() {
         body: JSON.stringify({ 'forcing_dir': forcing_dir, 'start_time': start_time, 'end_time': end_time }),
     }).then(response => response.text())
         .then(response_code => {
-            document.getElementById('forcings-output-path').textContent = "Forcings generated succesfully";
+            document.getElementById('forcings-output-path').textContent = "Forcings generated successfully";
         })
         .catch(error => {
             console.error('Error:', error);

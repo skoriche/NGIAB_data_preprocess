@@ -91,6 +91,10 @@ def add_APCP_SURFACE_to_dataset(dataset: xr.Dataset) -> xr.Dataset:
     dataset["APCP_surface"] = (dataset["RAINRATE"] * 3600 * 1000) / 0.998
     return dataset
 
+def save_to_csv(catchment_ds, csv_path):
+    catchment_df = catchment_ds.to_dataframe().drop(["catchment"], axis=1)
+    catchment_df.to_csv(csv_path)
+    return csv_path
 
 def compute_zonal_stats(
     gdf: gpd.GeoDataFrame, merged_data: xr.Dataset, forcings_dir: Path
@@ -171,11 +175,10 @@ def compute_zonal_stats(
     for catchment in final_ds.catchment.values:
         catchment_ds = final_ds.sel(catchment=catchment)
         csv_path = output_folder / f"{catchment}.csv"
-        delayed_save = dask.delayed(
-            catchment_ds.to_dataframe().drop(["catchment"], axis=1).to_csv(csv_path)
-        )
+        delayed_save = dask.delayed(save_to_csv)(catchment_ds, csv_path)
         delayed_saves.append(delayed_save)
-
+    if not Client(timeout="2s"):
+        cluster = LocalCluster()    
     dask.compute(*delayed_saves)
 
     logger.info(
