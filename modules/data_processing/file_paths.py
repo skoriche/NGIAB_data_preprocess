@@ -32,7 +32,7 @@ class file_paths:
         return file_paths.data_sources() / "template.gpkg"
 
     @staticmethod
-    def parquet() -> Path:
+    def model_attributes() -> Path:
         return file_paths.data_sources() / "model_attributes.parquet"
 
     @staticmethod

@@ -8,6 +8,43 @@ from flask_cors import CORS
 from flaskwebgui import FlaskUI
 import logging
 from .views import intra_module_db, main
+from tqdm import tqdm
+import requests
+
+def download_file(url, save_path):
+    response = requests.get(url, stream=True)
+    total_size = int(response.headers.get('content-length', 0))
+    bytes_downloaded = 0
+    chunk_size = 1048576
+    with open(save_path, "wb") as f:
+        for data in tqdm(response.iter_content(chunk_size=chunk_size), total=total_size/chunk_size, unit='MB', unit_scale=True):
+            bytes_downloaded += len(data)
+            f.write(data)
+
+hydrofabric_url = "https://lynker-spatial.s3-us-west-2.amazonaws.com/hydrofabric/v20.1/conus.gpkg"
+model_attributes_url = "https://lynker-spatial.s3-us-west-2.amazonaws.com/hydrofabric/v20.1/model_attributes.parquet"
+
+
+if not file_paths.conus_hydrofabric().is_file():
+    # alert the user that the hydrofabric is missing
+    print("Hydrofabric is missing. Would you like to download it now? (Y/n)")
+    response = input()
+    if response == "" or response.lower() == "y":
+        download_file(hydrofabric_url, file_paths.conus_hydrofabric())
+    else:
+        print("Exiting...")
+        exit()
+
+if not file_paths.model_attributes().is_file():
+    # alert the user that the model attributes are missing
+    print("Model attributes are missing. Would you like to download them now? (Y/n)")
+    response = input()
+    if response == "" or response.lower() == "y":
+        download_file(model_attributes_url, file_paths.model_attributes())
+    else:
+        print("Exiting...")
+        exit()
+        
 
 with open("app.log", "w") as f:
     f.write("")
