@@ -25,7 +25,7 @@ class file_paths:
 
     @staticmethod
     def root_output_dir() -> Path:
-        return Path(__file__).parent.parent / "output"
+        return Path(__file__).parent.parent.parent / "output"
 
     @staticmethod
     def template_gpkg() -> Path:

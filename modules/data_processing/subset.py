@@ -51,7 +51,7 @@ def create_subset_gpkg(ids: List[str], hydrofabric: str, paths: file_paths) -> P
 
 def subset_parquet(ids: List[str], paths: file_paths) -> None:
     cat_ids = [x.replace("wb", "cat") for x in ids]
-    parquet_path = paths.parquet()
+    parquet_path = paths.model_attributes()
     output_dir = paths.subset_dir()
     logger.debug(str(parquet_path))
     logger.info("Reading parquet")
