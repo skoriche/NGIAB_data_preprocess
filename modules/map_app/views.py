@@ -238,8 +238,8 @@ def subset_selection():
     wb_ids = list(json.loads(request.data.decode("utf-8")).keys())
     logger.info(wb_ids)
     subset_name = wb_ids[0]
-    subset_geopackage = subset(wb_ids, subset_name=subset_name)
-    return subset_geopackage, 200
+    subset_folder = subset(wb_ids, subset_name=subset_name)
+    return subset_folder, 200
 
 
 @main.route("/subset_to_file", methods=["POST"])
@@ -253,7 +253,7 @@ def subset_to_file():
     output_file.parent.mkdir(parents=True, exist_ok=True)
     with open(output_file, "w") as f:
         f.write("\n".join(total_subset))
-    return str(output_file), 200
+    return str(subset_paths.subset_dir()), 200
 
 
 @main.route("/forcings", methods=["POST"])
