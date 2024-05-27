@@ -207,16 +207,24 @@ function onMapClick(event) {
     })
         .then(response => response.json())
         .then(data => {
+            
             // if the wb_id is already in the dict, remove the key
             if (data['wb_id'] in wb_id_dict) {
                 delete wb_id_dict[data['wb_id']];
             }
             else {
+                // temporary fix to only allow one basin to be selected
+                wb_id_dict = {};
+                // uncomment above line to allow multiple basins to be selected
                 wb_id_dict[data['wb_id']] = [lat, lng];
             }
             console.log('clicked on wb_id: ' + data['wb_id'] + ' coords :' + lat + ', ' + lng);
+
+        
             synchronizeUpdates();
-            $('#selected-basins').text(Object.keys(wb_id_dict).join(', '));
+            //$('#selected-basins').text(Object.keys(wb_id_dict).join(', '));
+            // revert this line too
+            $('#selected-basins').text(Object.keys(wb_id_dict));
 
         })
         .catch(error => {
