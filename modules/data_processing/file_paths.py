@@ -49,7 +49,7 @@ class file_paths:
 
     @staticmethod
     def dev_file() -> Path:
-        return Path(__file__).parent.parent / ".dev"
+        return Path(__file__).parent.parent.parent / ".dev"
 
     @staticmethod
     def template_troute_config() -> Path:
