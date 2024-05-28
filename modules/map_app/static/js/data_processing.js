@@ -19,7 +19,7 @@ async function subset() {
             const endTime = performance.now(); // Stop the timer
             const duration = endTime - startTime; // Calculate the duration in milliseconds
             console.log('Request took ' + duration / 1000 + ' milliseconds');
-            document.getElementById('output-path').innerHTML = "Done in " + duration / 1000 + "s, subset to <a href='file:///" + filename + "'>" + filename + "</a>";
+            document.getElementById('output-path').innerHTML = "Done in " + duration / 1000 + "s, subset to <a href='file://" + filename + "'>" + filename + "</a>";
         })
         .catch(error => {
             console.error('Error:', error);
@@ -51,7 +51,7 @@ async function subset_to_file() {
             const endTime = performance.now(); // Stop the timer
             const duration = endTime - startTime; // Calculate the duration in milliseconds
             console.log('Request took ' + duration / 1000 + ' milliseconds');
-            document.getElementById('output-path').innerHTML = "Done in " + duration / 1000 + "s, subset to <a href='file:///" + filename + "'>" + filename + "</a>";
+            document.getElementById('output-path').innerHTML = "Done in " + duration / 1000 + "s, subset to <a href='file://" + filename + "'>" + filename + "</a>";
         })
         .catch(error => {
             console.error('Error:', error);
