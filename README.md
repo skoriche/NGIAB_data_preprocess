@@ -28,7 +28,7 @@ To install and run the tool, follow these steps:
 2. (Recommended but not required) Create a virtual environment and activate it:
     ```bash
     python -m venv env
-    source env/scripts/activate
+    source env/bin/activate
     ```
 
 3. Install the tool:
