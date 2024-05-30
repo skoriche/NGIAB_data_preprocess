@@ -73,7 +73,7 @@ console_handler.setFormatter(formatter)
 logging.getLogger("").addHandler(console_handler)
 
 def open_browser():
-    webbrowser.open("localhost:5000")
+    webbrowser.open("http://localhost:5000")
 
 
 if __name__ == "__main__":
