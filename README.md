@@ -15,6 +15,8 @@ This tool prepares data to run a next gen simulation by creating a run package t
 * GDAL needs to be installed.
 * The 'ogr2ogr' command needs to work in your terminal.
 
+`sudo apt install gdal-bin` will install gdal and ogr2ogr on ubuntu / wsl
+
 ## Installation
 
 To install and run the tool, follow these steps:
@@ -25,9 +27,9 @@ To install and run the tool, follow these steps:
     cd NGIAB_data_preprocess
     ```
 
-2. (Recommended but not required) Create a virtual environment and activate it:
+2. Create a virtual environment and activate it:
     ```bash
-    python -m venv env
+    python3 -m venv env
     source env/bin/activate
     ```
 
@@ -41,7 +43,16 @@ To install and run the tool, follow these steps:
     python -m map_app
     ```
 
-    The first time you run this command, it will download the hydrofabric and model parameter files from Lynker Spatial. If you already have them, place `conus.gpkg` and `model_attributes.parquet` into `modules/data_sources/`.
+The first time you run this command, it will download the hydrofabric and model parameter files from Lynker Spatial. If you already have them, place `conus.gpkg` and `model_attributes.parquet` into `modules/data_sources/`.
+
+If step 4 does not work, run the following:
+```bash
+touch .dev
+python -m map_app
+```   
+    
+This .dev file in the root folder disables the automatic browser opening so you will need to manually open [http://localhost:5000](http://localhost:5000) after running the `python -m map_app` command.   
+
 
 ## Usage
 
