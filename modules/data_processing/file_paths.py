@@ -9,6 +9,8 @@ class file_paths:
     methods do.
     """
 
+    config_file = Path("~/.NGIAB_data_preprocess").expanduser()
+
     def __init__(self, wb_id: str):
         """
         Initialize the file_paths class with a water body ID.
@@ -20,11 +22,26 @@ class file_paths:
         self.wb_id = wb_id
 
     @staticmethod
+    def get_working_dir() -> Path:
+        try:
+            with open(file_paths.config_file, "r") as f:
+                return Path(f.readline().strip()).expanduser()
+        except FileNotFoundError:
+            return None
+
+    @staticmethod
+    def set_working_dir(working_dir: Path) -> None:
+        with open(file_paths.config_file, "w") as f:
+            f.write(str(working_dir))
+
+    @staticmethod
     def data_sources() -> Path:
         return Path(__file__).parent.parent / "data_sources"
 
     @staticmethod
     def root_output_dir() -> Path:
+        if file_paths.get_working_dir() is not None:
+            return file_paths.get_working_dir()
         return Path(__file__).parent.parent.parent / "output"
 
     @staticmethod
