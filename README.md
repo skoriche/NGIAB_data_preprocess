@@ -1,5 +1,3 @@
-# Tools for NGIAB data preparation
-
 This repository contains tools for preparing data to run a [next gen](https://github.com/NOAA-OWP/ngen) simulation using [NGIAB](https://github.com/CIROH-UA/NGIAB-CloudInfra). The tools allow you to select a catchment of interest on an interactive map, choose a date range, and prepare the data with just a few clicks!
 
 ![map screenshot](https://github.com/CIROH-UA/NGIAB_data_preprocess/blob/main/map_app/static/resources/screenshot.png)
@@ -46,6 +44,7 @@ To install and run the tool, follow these steps:
 The first time you run this command, it will download the hydrofabric and model parameter files from Lynker Spatial. If you already have them, place `conus.gpkg` and `model_attributes.parquet` into `modules/data_sources/`.
 
 If step 4 does not work, run the following:
+
 ```bash
 touch .dev
 python -m map_app
