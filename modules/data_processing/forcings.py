@@ -10,6 +10,7 @@ from datetime import datetime
 import numba
 import numpy as np
 import dask
+from dask.distributed import Client, LocalCluster
 import geopandas as gpd
 import pandas as pd
 import s3fs
@@ -20,18 +21,15 @@ from data_processing.file_paths import file_paths
 
 logger = logging.getLogger(__name__)
 
-dask.config.set({"array.chunk-size": "1024MiB"})
-
-
-@cache
 def open_s3_store(url: str) -> s3fs.S3Map:
     """Open an s3 store from a given url."""
     return s3fs.S3Map(url, s3=s3fs.S3FileSystem(anon=True))
 
-
-@cache
 def load_zarr_datasets() -> xr.Dataset:
     """Load zarr datasets from S3 within the specified time range."""
+    # if a LocalCluster is not already running, start one
+    if not Client(timeout="2s"):
+        cluster = LocalCluster()    
     forcing_vars = ["lwdown", "precip", "psfc", "q2d", "swdown", "t2d", "u2d", "v2d"]
     s3_urls = [
         f"s3://noaa-nwm-retrospective-3-0-pds/CONUS/zarr/forcing/{var}.zarr"
@@ -61,9 +59,8 @@ def clip_dataset_to_bounds(
     return dataset
 
 
-def compute_store(stores: xr.Dataset, cached_nc_path: Path) -> xr.Dataset:
-    if file_paths.dev_file().exists():
-        stores.to_netcdf(cached_nc_path)
+def compute_store(stores: xr.Dataset, cached_nc_path: Path) -> xr.Dataset:    
+    stores.to_netcdf(cached_nc_path)
     data = xr.open_mfdataset(cached_nc_path, parallel=True, engine="h5netcdf")
     return data
 
@@ -94,6 +91,10 @@ def add_APCP_SURFACE_to_dataset(dataset: xr.Dataset) -> xr.Dataset:
     dataset["APCP_surface"] = (dataset["RAINRATE"] * 3600 * 1000) / 0.998
     return dataset
 
+def save_to_csv(catchment_ds, csv_path):
+    catchment_df = catchment_ds.to_dataframe().drop(["catchment"], axis=1)
+    catchment_df.to_csv(csv_path)
+    return csv_path
 
 def compute_zonal_stats(
     gdf: gpd.GeoDataFrame, merged_data: xr.Dataset, forcings_dir: Path
@@ -174,11 +175,10 @@ def compute_zonal_stats(
     for catchment in final_ds.catchment.values:
         catchment_ds = final_ds.sel(catchment=catchment)
         csv_path = output_folder / f"{catchment}.csv"
-        delayed_save = dask.delayed(
-            catchment_ds.to_dataframe().drop(["catchment"], axis=1).to_csv(csv_path)
-        )
+        delayed_save = dask.delayed(save_to_csv)(catchment_ds, csv_path)
         delayed_saves.append(delayed_save)
-
+    if not Client(timeout="2s"):
+        cluster = LocalCluster()    
     dask.compute(*delayed_saves)
 
     logger.info(

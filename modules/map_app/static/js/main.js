@@ -207,16 +207,24 @@ function onMapClick(event) {
     })
         .then(response => response.json())
         .then(data => {
+            
             // if the wb_id is already in the dict, remove the key
             if (data['wb_id'] in wb_id_dict) {
                 delete wb_id_dict[data['wb_id']];
             }
             else {
+                // temporary fix to only allow one basin to be selected
+                wb_id_dict = {};
+                // uncomment above line to allow multiple basins to be selected
                 wb_id_dict[data['wb_id']] = [lat, lng];
             }
             console.log('clicked on wb_id: ' + data['wb_id'] + ' coords :' + lat + ', ' + lng);
+
+        
             synchronizeUpdates();
-            $('#selected-basins').text(Object.keys(wb_id_dict).join(', '));
+            //$('#selected-basins').text(Object.keys(wb_id_dict).join(', '));
+            // revert this line too
+            $('#selected-basins').text(Object.keys(wb_id_dict));
 
         })
         .catch(error => {
@@ -262,25 +270,6 @@ async function addLayers() {
         }).addTo(map);
     }));
 }
-
-async function preload_zarrs() {
-    original_text = document.getElementById('forcings-button').textContent;
-    document.getElementById('forcings-button').disabled = true;
-    document.getElementById('forcings-button').textContent = "Preloading Zarr Metadata";
-
-    document.getElementById('forcings-loading').style.visibility = "visible";
-    const zarrs = await fetch('/preload_zarrs', {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-    })
-        .then(_ => {
-            document.getElementById('forcings-button').disabled = false;
-            document.getElementById('forcings-loading').style.visibility = "hidden";
-            document.getElementById('forcings-button').textContent = original_text;
-        });
-}
-
-
 
 geometry_urls = {
     '16': 'e8ddee6a8a90484fa7a976458e79c0c3',
@@ -351,10 +340,6 @@ addLayers().then(() => {
     map.on('click', onMapClick);
 });
 
-preload_zarrs().then((zarrs) => {
-    console.log('preloaded zarrs');
-    console.log(zarrs);
-});
 
 
 

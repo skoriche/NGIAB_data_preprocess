@@ -34,16 +34,13 @@
             <button id="subset-button">Create subset gpkg</button>
             <img class="loading" src="{{ url_for('static', filename='resources/loading.gif') }}" alt="Loading"
                 id="subset-loading">
-            <button id="subset-to-file-button">Output list to file</button>
+            <button id="subset-to-file-button">Output list of upstreams to file</button>
             <img class="loading" src="{{ url_for('static', filename='resources/loading.gif') }}" alt="Loading"
                 id="subset-to-file-loading">
             <div id="output-path"></div>
         </section>
 
         <section id="time-settings">
-            <div id="time-warning">
-                <h3>Make sure you have a date AND time, or else this won't work</h3>
-            </div>
             <div class="time-input">
                 <label for="start-time">Start Time:</label>
                 <input type="datetime-local" id="start-time" name="start-time" value="2010-01-01T00:00">
@@ -56,7 +53,7 @@
 
         <section id="forcings">
             <div id="forcings-warning">
-                <strong>Warning: This will take a while</strong>
+                <strong>Forcing generation may take a while.</strong>
             </div>
             <button id="forcings-button">Create Forcing From Zarrs</button>
             <img class=" loading" src="{{ url_for('static', filename='resources/loading.gif') }}" alt="Loading"
