@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import json
-import shutil
 import typing
 from collections import OrderedDict
 from datetime import datetime

@@ -25,14 +25,14 @@ class file_paths:
 
     @staticmethod
     def root_output_dir() -> Path:
-        return Path(__file__).parent.parent / "output"
+        return Path(__file__).parent.parent.parent / "output"
 
     @staticmethod
     def template_gpkg() -> Path:
         return file_paths.data_sources() / "template.gpkg"
 
     @staticmethod
-    def parquet() -> Path:
+    def model_attributes() -> Path:
         return file_paths.data_sources() / "model_attributes.parquet"
 
     @staticmethod
@@ -49,7 +49,7 @@ class file_paths:
 
     @staticmethod
     def dev_file() -> Path:
-        return Path(__file__).parent.parent / ".dev"
+        return Path(__file__).parent.parent.parent / ".dev"
 
     @staticmethod
     def template_troute_config() -> Path:

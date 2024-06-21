@@ -17,7 +17,7 @@ import multiprocessing
 from data_processing.gpkg_utils import get_table_crs, blob_to_geometry, blob_to_centroid
 from data_processing.create_realization import create_realization
 from data_processing.file_paths import file_paths
-from data_processing.forcings import create_forcings, load_zarr_datasets
+from data_processing.forcings import create_forcings
 from data_processing.graph_utils import get_from_to_id_pairs, get_upstream_ids
 from data_processing.subset import subset
 
@@ -238,8 +238,8 @@ def subset_selection():
     wb_ids = list(json.loads(request.data.decode("utf-8")).keys())
     logger.info(wb_ids)
     subset_name = wb_ids[0]
-    subset_geopackage = subset(wb_ids, subset_name=subset_name)
-    return subset_geopackage, 200
+    subset_folder = subset(wb_ids, subset_name=subset_name)
+    return subset_folder, 200
 
 
 @main.route("/subset_to_file", methods=["POST"])
@@ -253,7 +253,7 @@ def subset_to_file():
     output_file.parent.mkdir(parents=True, exist_ok=True)
     with open(output_file, "w") as f:
         f.write("\n".join(total_subset))
-    return str(output_file), 200
+    return str(subset_paths.subset_dir()), 200
 
 
 @main.route("/forcings", methods=["POST"])
@@ -312,12 +312,6 @@ def get_wbids_from_vpu():
         ),
         200,
     )
-
-
-@main.route("/preload_zarrs", methods=["GET"])
-def preload_zarrs():
-    load_zarr_datasets()
-    return "success", 200
 
 
 @main.route("/logs", methods=["GET"])

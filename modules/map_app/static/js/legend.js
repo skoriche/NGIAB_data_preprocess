@@ -1,8 +1,13 @@
 // wait for the DOM to finish loading
 document.addEventListener('DOMContentLoaded', function () {
-    // bind the form to the function
     // load in html template for the control panel
-    $(".custom_legend").load("static/html/legend.html");
+    $(".custom_legend").load("static/html/legend.html", function() {
+        // defaults 
+        $(".leaflet-marker-pane").toggle(200);
+        $(".leaflet-shadow-pane").toggle(200);
+        $("#legend_nexus_circles_icon").toggleClass("turned_off");
+    });
+
     $(".custom_legend").click(function (f) {
         // stop the map click event from firing        
         if (f.target.classList.contains("legend_icon")) {
@@ -37,4 +42,8 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
 
     });
+
 });
+
+
+

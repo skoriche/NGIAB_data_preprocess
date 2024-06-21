@@ -1,83 +1,72 @@
 # Tools for NGIAB data preparation
 
-### This is an early version, help us improve it.
-This is still in development, your feedback and patience is appreciated.
-If you have any suggestions to improve or find bugs that need fixing, submit an issue here on github.
+This repository contains tools for preparing data to run a [next gen](https://github.com/NOAA-OWP/ngen) simulation using [NGIAB](https://github.com/CIROH-UA/NGIAB-CloudInfra). The tools allow you to select a catchment of interest on an interactive map, choose a date range, and prepare the data with just a few clicks!
 
-![map screenshot](./map_app/static/resources/screenshot.png)
+![map screenshot](https://github.com/CIROH-UA/NGIAB_data_preprocess/blob/main/map_app/static/resources/screenshot.png)
 
-## Aproximate workflow
-1) Select the water basins you're interested in on the map
-1) Click subset, this creates a geopackage with the waterbains you've selected + any basin upstream of it
-1) Pick a date and time
-1) Generate forcings for your water basins
-1) Create a cfe realisation for your selected data
 
-# Running with docker and devcontainers
-The easiest way to get this all working is with [dev containers](https://code.visualstudio.com/docs/devcontainers/containers).     
-It's a docker container managed by vscode:   
-1) Clone this repo   
-2) Open it in vscode     
-3) Click through the popups in the bottom right    
-depending on what you've already got installed, it may install wsl, docker, and the vscode devcontainer extension    
-4) Wait for it to finish building, view the log to watch it build
-5) 
+## What does this tool do?
+
+This tool prepares data to run a next gen simulation by creating a run package that can be used with NGIAB. It picks default data sources, including the [v20.1 hydrofabric](https://www.lynker-spatial.com/data?path=hydrofabric%2Fv20.1%2F) and [nwm retrospective v3 forcing](https://noaa-nwm-retrospective-3-0-pds.s3.amazonaws.com/index.html#CONUS/zarr/forcing/) data.
+
+## Requirements
+
+* This tool is officially supported on macOS or Ubuntu. To use it on Windows, please install [WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
+* GDAL needs to be installed.
+* The 'ogr2ogr' command needs to work in your terminal.
+
+`sudo apt install gdal-bin` will install gdal and ogr2ogr on ubuntu / wsl
+
+## Installation
+
+To install and run the tool, follow these steps:
+
+1. Clone the repository:
+    ```bash
+    git clone https://github.com/CIROH-UA/NGIAB_data_preprocess
+    cd NGIAB_data_preprocess
+    ```
+
+2. Create a virtual environment and activate it:
+    ```bash
+    python3 -m venv env
+    source env/bin/activate
+    ```
+
+3. Install the tool:
+    ```bash
+    pip install -e .
+    ```
+
+4. Run the map app:
+    ```bash
+    python -m map_app
+    ```
+
+The first time you run this command, it will download the hydrofabric and model parameter files from Lynker Spatial. If you already have them, place `conus.gpkg` and `model_attributes.parquet` into `modules/data_sources/`.
+
+If step 4 does not work, run the following:
 ```bash
-cd data_sources
-wget https://lynker-spatial.s3.amazonaws.com/v20.1/conus.gpkg
-wget https://lynker-spatial.s3.amazonaws.com/v20.1/model_attributes.parquet
-cd ..
-# to run
-./run.sh
-# the first run may seem slow to start as it needs to generate a river network
+touch .dev
+python -m map_app
 ```   
+    
+This .dev file in the root folder disables the automatic browser opening so you will need to manually open [http://localhost:5000](http://localhost:5000) after running the `python -m map_app` command.   
 
-#### When using the tool, the output will be ./output/<your-first-catchment>/
-*THERE IS NO OVERWRITE PROTECTION ON THE FOLDERS*
 
-# Branches
-## main
-This is the default branch, it will get less frequent updates, but will be more stable.
-## dev
-This will be updated more frequently, but it won't be as rigorously tested as main.
+## Usage
 
-<details>
-    <summary>Manual installation</summary>
+Running the command `python -m map_app` will open the app in a new browser tab. Alternatively, you can manually open it by going to [http://localhost:5000](http://localhost:5000) with the app running.
 
-## Native ubuntu (or wsl)
-*For forcing generation you need to install exact_extract too, see below
+To use the tool:
 
-automation of this bit coming soon™
-```bash
-# needs ogr2ogr command to subset
-sudo apt install gdal-bin
-git clone https://github.com/JoshCu/NGIAB_data_preprocess
-# git clone git@github.com:JoshCu/NGIAB_data_preprocess
-cd NGIAB_data_preprocess
-python -m venv env
-source env/bin/activate
-pip install -r requirements.txt
-# once you download these two files, you can subset quickly to your hearts content
-# but it may take a while to download
-cd data_sources
-wget https://lynker-spatial.s3.amazonaws.com/v20.1/conus.gpkg
-wget https://lynker-spatial.s3.amazonaws.com/v20.1/model_attributes.parquet
-cd ..
-./run.sh
-```
+1. Select the catchment you're interested in on the map.
+2. Pick the time period you want to simulate.
+3. Click the following buttons in order:
+    1) Create subset gpkg
+    2) Create Forcing from Zarrs
+    3) Create Realization
 
-## Forcings generation uses exact_extract
-Full documentation [here](https://github.com/isciences/exactextract/tree/master/python)  
-On ubuntu 22.04, there's a package for GEOS, if you can't find one then [build from source :\( ](https://github.com/libgeos/geos/blob/main/INSTALL.md])
-```bash
-# assuming you just did the block above and are in the map_app dir
-cd ..
-pip install "pybind11[global]"
-sudo apt install libgeos3.10.2 # possibly libgeos-c1v5 too
-git clone https://github.com/isciences/exactextract.git
-cd exactextract
-pip install .
-cd ../NGIAB_data_preprocess
-./run.sh
-```
-</details>
+Once all the steps are finished, you can run NGIAB on the folder shown underneath the subset button.
+
+**Note:** When using the tool, the output will be stored in the `./output/<your-first-catchment>/` folder. There is no overwrite protection on the folders.

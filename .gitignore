@@ -1,9 +1,10 @@
-data_sources/conus*
-data_sources/*.parquet
-data_sources/*/*
+conus*.*
+*.parquet
 output/*
 !output/.gitkeep
 env
 __pycache__
 .dev
 app.log
+dist
+*.egg-info
