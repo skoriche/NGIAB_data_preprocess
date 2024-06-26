@@ -80,8 +80,8 @@
             }
         ],
         "forcing": {
-            "file_pattern": ".*{{id}}.*.csv",
-            "path": "./forcings/by_catchment",
+            "file_pattern": "{{id}}.csv",
+            "path": "./forcings/by_catchment/",
             "provider": "CsvPerFeature"
         }
     },
