@@ -8,3 +8,5 @@ __pycache__
 app.log
 dist
 *.egg-info
+**/static/tms*
+**/static/vpu*

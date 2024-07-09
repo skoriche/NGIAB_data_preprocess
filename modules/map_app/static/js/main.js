@@ -207,7 +207,7 @@ function onMapClick(event) {
     })
         .then(response => response.json())
         .then(data => {
-            
+
             // if the wb_id is already in the dict, remove the key
             if (data['wb_id'] in wb_id_dict) {
                 delete wb_id_dict[data['wb_id']];
@@ -220,7 +220,7 @@ function onMapClick(event) {
             }
             console.log('clicked on wb_id: ' + data['wb_id'] + ' coords :' + lat + ', ' + lng);
 
-        
+
             synchronizeUpdates();
             //$('#selected-basins').text(Object.keys(wb_id_dict).join(', '));
             // revert this line too
@@ -297,7 +297,7 @@ geometry_urls = {
 }
 
 // Initialize the map
-var map = L.map('map').setView([40, -96], 5);
+var map = L.map('map', { crs: L.CRS.EPSG3857 }).setView([40, -96], 5);
 
 //Create in-map Legend / Control Panel
 var legend = L.control({ position: 'bottomright' });
@@ -316,30 +316,24 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     crs: L.CRS.EPSG3857
 }).addTo(map);
 
-
-var baseUrl = "https://geoserver.hydroshare.org/geoserver/gwc/service/tms/1.0.0/";  // Base URL of the WMTS service
-
-var boundaries_of_vpus = "HS-35e8c6023c154b6298fcda280beda849:vpu_boundaries@EPSG:900913";
-
-southWest = L.latLng(22.5470, -129.4137);
-northEast = L.latLng(51.0159, -68.9337);
-bounds = L.latLngBounds(southWest, northEast);
-
-var wmtsLayer = L.tileLayer(baseUrl +
-    boundaries_of_vpus + '@png/{z}/{x}/{-y}.png', {
-    attribution: '&copy; <a href="https://www.hydroshare.org/">Hydroshare</a> contributors',
-    transparent: true,
-    format: 'image/png',
-    opacity: 1,
-    maxZoom: 7,
-    bounds: bounds,
+L.tileLayer('static/tms/{z}/{x}/{y}.png', {
+    minZoom: 8,
+    maxZoom: 18,
+    maxNativeZoom: 12,
+    attribution: '© OpenStreetMap contributors',
+    crs: L.CRS.EPSG3857,
+    reuseTiles: true
 }).addTo(map);
 
-addLayers().then(() => {
-    console.log('added layers');
-    map.on('click', onMapClick);
-});
+L.tileLayer('static/vpu/{z}/{x}/{y}.png', {
+    minZoom: 0,
+    maxZoom: 11,
+    maxNativeZoom: 9,
+    attribution: '© OpenStreetMap contributors',
+    crs: L.CRS.EPSG3857,
+    reuseTiles: true
+}).addTo(map);
 
 
-
+map.on('click', onMapClick);
 
