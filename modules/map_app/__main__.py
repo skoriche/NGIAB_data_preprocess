@@ -37,6 +37,8 @@ def decompress_gzip_tar(file_path, output_dir):
 
 
 def download_file(url, save_path):
+    if not os.path.exists(os.path.dirname(save_path)):
+        os.makedirs(os.path.dirname(save_path))
     response = requests.get(url, stream=True)
     total_size = int(response.headers.get("content-length", 0))
     bytes_downloaded = 0
@@ -45,8 +47,9 @@ def download_file(url, save_path):
         for data in tqdm(
             response.iter_content(chunk_size=chunk_size),
             total=total_size / chunk_size,
-            unit="MB",
+            unit="B",
             unit_scale=True,
+            desc=f"Downloading",
         ):
             bytes_downloaded += len(data)
             f.write(data)
@@ -91,12 +94,24 @@ if not file_paths.config_file.is_file():
     file_paths.set_working_dir(response)
 
 if not file_paths.tiles_tms().is_dir():
+    print("Downloading catchment boundary map")
+    download_file(
+        "https://www.hydroshare.org/resource/f37d4b10e28a4694825c30fc38e2a7a0/data/contents/tms8-11.tar.gz",
+        "temp/tms.tar.gz",
+    )
     print("Unzipping catchment boundary map")
-    decompress_gzip_tar("modules/map_app/static/tms.tar.gz", file_paths.tiles_tms().parent)
+    decompress_gzip_tar("temp/tms.tar.gz", file_paths.tiles_tms())
+    os.remove("temp/tms.tar.gz")
 
 if not file_paths.tiles_vpu().is_dir():
+    print("Downloading vpu boundary map")
+    download_file(
+        "https://www.hydroshare.org/resource/f37d4b10e28a4694825c30fc38e2a7a0/data/contents/vpu.tar.gz",
+        "temp/vpu.tar.gz",
+    )
     print("Unzipping vpu boundary map")
-    decompress_gzip_tar("modules/map_app/static/vpu.tar.gz", file_paths.tiles_vpu().parent)
+    decompress_gzip_tar("temp/vpu.tar.gz", file_paths.tiles_vpu().parent)
+    os.remove("temp/vpu.tar.gz")
 
 
 with open("app.log", "w") as f:
