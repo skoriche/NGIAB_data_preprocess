@@ -308,30 +308,36 @@ legend.onAdd = function (map) {
 };
 legend.addTo(map);
 
+southWest = L.latLng(22.5470, -125);
+northEast = L.latLng(53, -65);
+bounds = L.latLngBounds(southWest, northEast);
 
 // Add OpenStreetMap tiles to the map
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 18,
     attribution: '© OpenStreetMap contributors',
     crs: L.CRS.EPSG3857
+
 }).addTo(map);
 
-L.tileLayer('static/tms/{z}/{x}/{y}.png', {
+L.tileLayer('static/tiles/tms/{z}/{x}/{y}.png', {
     minZoom: 8,
     maxZoom: 18,
     maxNativeZoom: 12,
     attribution: '© OpenStreetMap contributors',
     crs: L.CRS.EPSG3857,
-    reuseTiles: true
+    reuseTiles: true,
+    bounds: bounds
 }).addTo(map);
 
-L.tileLayer('static/vpu/{z}/{x}/{y}.png', {
+L.tileLayer('static/tiles/vpu/{z}/{x}/{y}.png', {
     minZoom: 0,
     maxZoom: 11,
     maxNativeZoom: 9,
     attribution: '© OpenStreetMap contributors',
     crs: L.CRS.EPSG3857,
-    reuseTiles: true
+    reuseTiles: true,
+    bounds: bounds
 }).addTo(map);
 
 
