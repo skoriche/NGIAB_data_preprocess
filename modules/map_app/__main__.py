@@ -26,7 +26,7 @@ def decompress_gzip_tar(file_path, output_dir):
 
     with gzip.open(file_path, "rb") as f_in:
         # Create a tqdm progress bar
-        with tqdm(total=total_size, unit="B", unit_scale=True, desc=f"Decompressing") as pbar:
+        with tqdm(total=total_size, unit="MB", unit_scale=True, desc=f"Decompressing") as pbar:
             # Open the tar archive
             with tarfile.open(fileobj=f_in) as tar:
                 # Extract all contents

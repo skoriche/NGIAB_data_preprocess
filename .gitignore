@@ -10,3 +10,4 @@ dist
 *.egg-info
 **/tiles/tms*
 **/tiles/vpu*
+*.tar.gz

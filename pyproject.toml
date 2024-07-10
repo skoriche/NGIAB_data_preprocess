@@ -48,6 +48,7 @@ dependencies = [
     "numpy==1.26.4",
     "flaskwebgui==1.1.0",
     "tqdm==4.66.4",
+    "rich==13.7.1",
 ]
 
 [project.urls]
