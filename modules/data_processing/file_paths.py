@@ -39,6 +39,18 @@ class file_paths:
         return Path(__file__).parent.parent / "data_sources"
 
     @staticmethod
+    def map_app_static() -> Path:
+        return Path(__file__).parent.parent / "map_app" / "static"
+
+    @staticmethod
+    def tiles_tms() -> Path:
+        return file_paths.map_app_static() / "tiles" / "tms"
+
+    @staticmethod
+    def tiles_vpu() -> Path:
+        return file_paths.map_app_static() / "tiles" / "vpu"
+
+    @staticmethod
     def root_output_dir() -> Path:
         if file_paths.get_working_dir() is not None:
             return file_paths.get_working_dir()

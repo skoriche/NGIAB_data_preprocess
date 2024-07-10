@@ -7,9 +7,33 @@ from flask import Flask
 from flask_cors import CORS
 import logging
 from .views import intra_module_db, main
-from tqdm import tqdm
+from tqdm.rich import tqdm
+from tqdm import TqdmExperimentalWarning
+
+import warnings
 import requests
 import webbrowser
+
+import tarfile
+import gzip
+
+warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
+
+
+def decompress_gzip_tar(file_path, output_dir):
+    # Get the total size of the compressed file
+    total_size = os.path.getsize(file_path)
+
+    with gzip.open(file_path, "rb") as f_in:
+        # Create a tqdm progress bar
+        with tqdm(total=total_size, unit="B", unit_scale=True, desc=f"Decompressing") as pbar:
+            # Open the tar archive
+            with tarfile.open(fileobj=f_in) as tar:
+                # Extract all contents
+                for member in tar:
+                    tar.extract(member, path=output_dir)
+                    # Update the progress bar
+                    pbar.update(member.size)
 
 
 def download_file(url, save_path):
@@ -65,6 +89,14 @@ if not file_paths.config_file.is_file():
     if response == "" or response.lower() == "n":
         response = "~/ngiab_preprocess_output/"
     file_paths.set_working_dir(response)
+
+if not file_paths.tiles_tms().is_dir():
+    print("Unzipping catchment boundary map")
+    decompress_gzip_tar("modules/map_app/static/tms.tar.gz", file_paths.tiles_tms().parent)
+
+if not file_paths.tiles_vpu().is_dir():
+    print("Unzipping vpu boundary map")
+    decompress_gzip_tar("modules/map_app/static/vpu.tar.gz", file_paths.tiles_vpu().parent)
 
 
 with open("app.log", "w") as f:
