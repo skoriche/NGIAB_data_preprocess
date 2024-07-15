@@ -105,22 +105,22 @@ Once all the steps are finished, you can run NGIAB on the folder shown underneat
 
 1. Subset hydrofabric:
    ```
-   python script_name.py -i waterbody_ids.txt -s
+   python -m ngiab_data_cli -i waterbody_ids.txt -s
    ```
 
 2. Generate forcings:
    ```
-   python script_name.py -i wb-5173 -f --start_date 2023-01-01 --end_date 2023-12-31
+   python -m ngiab_data_cli -i wb-5173 -f --start_date 2023-01-01 --end_date 2023-12-31
    ```
 
 3. Create realization:
    ```
-   python script_name.py -i waterbody_ids.csv -r --start_date 2023-01-01 --end_date 2023-12-31 -o custom_output
+   python -m ngiab_data_cli -i waterbody_ids.csv -r --start_date 2023-01-01 --end_date 2023-12-31 -o custom_output
    ```
 
 4. Perform all operations:
    ```
-   python script_name.py -i waterbody_ids.txt -s -f -r --start_date 2023-01-01 --end_date 2023-12-31
+   python -m ngiab_data_cli -i waterbody_ids.txt -s -f -r --start_date 2023-01-01 --end_date 2023-12-31
    ```
 
 ### File Formats
