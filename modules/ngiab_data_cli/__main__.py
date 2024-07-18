@@ -3,11 +3,13 @@ import logging
 from typing import List
 from datetime import datetime
 from pathlib import Path
+import pandas as pd
 
 # Import colorama for cross-platform colored terminal text
 from colorama import Fore, Style, init
 
 from data_processing.file_paths import file_paths
+from data_processing.gpkg_utils import get_wbid_from_point
 from data_processing.subset import subset
 from data_processing.forcings import create_forcings
 from data_processing.create_realization import create_realization
@@ -22,12 +24,14 @@ WB_ID_PREFIX = "wb-"
 # Initialize colorama
 init(autoreset=True)
 
+
 class ColoredFormatter(logging.Formatter):
     def format(self, record):
         message = super().format(record)
-        if record.name == 'root':  # Only color messages from this script
+        if record.name == "root":  # Only color messages from this script
             return f"{Fore.GREEN}{message}{Style.RESET_ALL}"
         return message
+
 
 def setup_logging() -> None:
     """Set up logging configuration with green formatting."""
@@ -52,7 +56,14 @@ def parse_arguments() -> argparse.Namespace:
         "-i",
         "--input_file",
         type=str,
-        help="Path to a csv or txt file containing a list of waterbody IDs",
+        help="Path to a csv or txt file containing a newline separated list of waterbody IDs, when used with -l, the file should contain lat/lon pairs",
+    )
+    parser.add_argument(
+        "-l",
+        "--latlon",
+        action="store_true",
+        help="Use lat lon instead of wbid, expects a csv with columns 'lat' and 'lon' or \
+            comma separated via the cli \n e.g. python -m ngiab_data_cli -i 54.33,-69.4 -l -s",
     )
     parser.add_argument(
         "-s",
@@ -108,6 +119,61 @@ def validate_input(args: argparse.Namespace) -> None:
         )
 
 
+def read_csv(input_file: Path) -> List[str]:
+    """Read waterbody IDs from a CSV file."""
+    # read the first line of the csv file, if it contains a item starting wb_ then that's the column to use
+    # if not then look for a column named 'wb_id' or 'waterbody_id' or divide_id
+    # if not, then use the first column
+    df = pd.read_csv(input_file)
+    wb_id_col = None
+    for col in df.columns:
+        if col.startswith("wb-") and col.lower() != "wb-id":
+            wb_id_col = col
+            df = df.read_csv(input_file, header=None)
+            break
+    if wb_id_col is None:
+        for col in df.columns:
+            if col.lower() in ["wb_id", "waterbody_id", "divide_id"]:
+                wb_id_col = col
+                break
+    if wb_id_col is None:
+        raise ValueError(
+            "No waterbody IDs column found in the input file: \n\
+                         csv expects a single column of waterbody IDs  \n\
+                         or a column named 'wb_id' or 'waterbody_id' or 'divide_id'"
+        )
+
+    entries = df[wb_id_col].astype(str).tolist()
+
+    if len(entries) == 0:
+        raise ValueError("No waterbody IDs found in the input file")
+
+    return df[wb_id_col].astype(str).tolist()
+
+
+def read_lat_lon_csv(input_file: Path) -> List[str]:
+    # read the csv, see if the first line contains lat and lon, if not, check if it's a pair of numeric values
+    # if not, raise an error
+    df = pd.read_csv(input_file)
+    lat_col = None
+    lon_col = None
+    for col in df.columns:
+        if col.lower() == "lat":
+            lat_col = col
+        if col.lower() == "lon":
+            lon_col = col
+    if len(df.columns) == 2 and lat_col is None and lon_col is None:
+        lat_col = 0
+        lon_col = 1
+        df = pd.read_csv(input_file, header=None)
+    if lat_col is None or lon_col is None:
+        raise ValueError(
+            "No lat/lon columns found in the input file: \n\
+                         csv expects columns named 'lat' and 'lon' or exactly two unnamed columns of lat and lon"
+        )
+    return df[[lat_col, lon_col]].astype(float).values.tolist()
+
+
 def read_waterbody_ids(input_file: Path) -> List[str]:
     """Read waterbody IDs from input file or return single ID."""
     if input_file.stem.startswith(WB_ID_PREFIX):
@@ -119,8 +185,33 @@ def read_waterbody_ids(input_file: Path) -> List[str]:
     if input_file.suffix not in SUPPORTED_FILE_TYPES:
         raise ValueError(f"Unsupported file type: {input_file.suffix}")
 
+    if input_file.suffix == ".csv":
+        return read_csv(input_file)
+
     with input_file.open("r") as f:
         return f.read().splitlines()
+
+
+def get_wb_ids_from_lat_lon(input_file: Path) -> List[str]:
+    """Read waterbody IDs from input file or return single ID."""
+    lat_lon_list = []
+    if "," in input_file.stem:
+        coords = input_file.stem.split(",")
+        lat_lon_list.append([float(coords[0]), float(coords[1])])
+    if not input_file.exists():
+        raise FileNotFoundError(f"The file {input_file} does not exist")
+
+    if input_file.suffix not in SUPPORTED_FILE_TYPES:
+        raise ValueError(f"Unsupported file type: {input_file.suffix}")
+
+    if input_file.suffix == ".csv":
+        lat_lon_list = read_lat_lon_csv(input_file)
+
+    converted_coords = []
+    for ll in lat_lon_list:
+        converted_coords.append(get_wbid_from_point({"lat": ll[0], "lng": ll[1]}))
+
+    return converted_coords
 
 
 def main() -> None:
@@ -132,7 +223,10 @@ def main() -> None:
 
         if args.input_file:
             input_file = Path(args.input_file)
-            waterbody_ids = read_waterbody_ids(input_file)
+            if args.latlon:
+                waterbody_ids = get_wb_ids_from_lat_lon(input_file)
+            else:
+                waterbody_ids = read_waterbody_ids(input_file)
             logging.info(f"Read {len(waterbody_ids)} waterbody IDs from {input_file}")
         else:
             waterbody_ids = []

@@ -14,7 +14,12 @@ from shapely.ops import transform
 import pyproj
 import multiprocessing
 
-from data_processing.gpkg_utils import get_table_crs, blob_to_geometry, blob_to_centroid
+from data_processing.gpkg_utils import (
+    get_table_crs,
+    blob_to_geometry,
+    blob_to_centroid,
+    get_wbid_from_point,
+)
 from data_processing.create_realization import create_realization
 from data_processing.file_paths import file_paths
 from data_processing.forcings import create_forcings
@@ -95,7 +100,19 @@ def get_map_data():
 
 def wbids_to_geojson(wb_dict):
     for k, v in wb_dict.items():
-        wb_dict[k] = Point(v[1], v[0])
+        if v[0] != 0 and v[1] != 0:
+            # assuming this was called by clicking on the map
+            wb_dict[k] = Point(v[1], v[0])
+        else:
+            # this was called without knowing the coordinates
+            # use sql to get the geometry
+            conn = sqlite3.connect(file_paths.conus_hydrofabric())
+            c = conn.cursor()
+            c.execute(f"SELECT geom FROM divides WHERE id = '{k}'")
+            result = c.fetchone()
+            if result is not None:
+                wb_dict[k] = convert_to_4326(blob_to_geometry(result[0])).buffer(-0.0001)
+
     d = {"col1": wb_dict.keys(), "geometry": wb_dict.values()}
     points = gpd.GeoDataFrame(d, crs="EPSG:4326")
     logger.debug(points)
