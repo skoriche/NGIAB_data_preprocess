@@ -309,7 +309,7 @@ L.tileLayer('static/tiles/tms/{z}/{x}/{y}.png', {
     minZoom: 8,
     maxZoom: 18,
     maxNativeZoom: 11,
-    attribution: '© OpenStreetMap contributors',
+    attribution: '© Johnson, J. M. (2022). National Hydrologic Geospatial Fabric (hydrofabric) for the Next Generation (NextGen) Hydrologic Modeling Framework',
     crs: L.CRS.EPSG3857,
     reuseTiles: true,
     bounds: bounds
@@ -319,7 +319,6 @@ L.tileLayer('static/tiles/vpu/{z}/{x}/{y}.png', {
     minZoom: 0,
     maxZoom: 11,
     maxNativeZoom: 9,
-    attribution: '© OpenStreetMap contributors',
     crs: L.CRS.EPSG3857,
     reuseTiles: true,
     bounds: bounds
