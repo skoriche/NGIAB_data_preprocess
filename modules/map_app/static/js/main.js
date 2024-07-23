@@ -281,6 +281,40 @@ function clear_selection() {
 
 $('#clear-button').click(clear_selection);
 
+function get_wbid_from_gage_id(gage_id) {
+    return fetch('/get_wbid_from_gage_id', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            gage_id: gage_id
+        }),
+    })
+        .then(response => response.json())
+        .then(data => {
+            return data['wb_id'];
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+}
+
+function select_by_gage_id() {
+    gage_ids = $('#gage_id_input').val();
+    gage_ids = gage_ids.split(',');
+    for (gage_id of gage_ids) {
+        wb_id = get_wbid_from_gage_id(gage_id);
+        wb_id.then(function (result) {
+            wb_id_dict[result] = [0, 0];
+            $('#selected-basins').text(Object.keys(wb_id_dict));
+        });
+    }
+    synchronizeUpdates();
+}
+
+$('#select-gage-button').click(select_by_gage_id);
+
 // Initialize the map
 var map = L.map('map', { crs: L.CRS.EPSG3857 }).setView([40, -96], 5);
 
