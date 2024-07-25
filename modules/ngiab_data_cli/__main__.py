@@ -30,6 +30,9 @@ class ColoredFormatter(logging.Formatter):
         message = super().format(record)
         if record.name == "root":  # Only color messages from this script
             return f"{Fore.GREEN}{message}{Style.RESET_ALL}"
+        # if debug level, color the message blue
+        if record.levelno == logging.DEBUG:
+            return f"{Fore.BLUE}{message}{Style.RESET_ALL}"
         return message
 
 
@@ -106,7 +109,12 @@ def parse_arguments() -> argparse.Namespace:
         type=str,
         help="Name of the subset to be created (default is the first waterbody ID in the input file)",
     )
-
+    parser.add_argument(
+        "-D",
+        "--debug",
+        action="store_true",
+        help="enable debug logging",
+    )
     return parser.parse_args()
 
 
@@ -268,6 +276,9 @@ def main() -> None:
         args = parse_arguments()
         validate_input(args)
 
+        if args.debug:
+            logging.getLogger("data_processing").setLevel(logging.DEBUG)
+
         if args.input_file:
             input_file = Path(args.input_file)
             if args.latlon:
@@ -311,6 +322,7 @@ def main() -> None:
         logging.info("All requested operations completed successfully.")
         # set logging to ERROR level only as dask distributed can clutter the terminal with INFO messages
         # that look like errors
+
         set_logging_to_critical_only()
 
     except Exception as e:
