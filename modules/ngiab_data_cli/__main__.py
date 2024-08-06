@@ -213,9 +213,13 @@ def read_waterbody_ids(input_file: Path) -> List[str]:
 def get_wb_ids_from_lat_lon(input_file: Path) -> List[str]:
     """Read waterbody IDs from input file or return single ID."""
     lat_lon_list = []
-    if "," in input_file.stem:
-        coords = input_file.stem.split(",")
-        lat_lon_list.append([float(coords[0]), float(coords[1])])
+    if "," in input_file.name:
+        coords = input_file.name.split(",")
+        lat_lon_list.append(
+            get_wbid_from_point({"lat": float(coords[0]), "lng": float(coords[1])})
+        )
+        return lat_lon_list
+
     if not input_file.exists():
         raise FileNotFoundError(f"The file {input_file} does not exist")
 
