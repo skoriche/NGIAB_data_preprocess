@@ -354,5 +354,5 @@ def get_wbid_from_gage_id():
     gage_id = json.loads(request.data.decode("utf-8"))["gage_id"]
     result = get_wb_from_gage_id(gage_id)
     if result is not None:
-        return jsonify({"wb_id": result}), 200
+        return jsonify({"wb_ids": result}), 200
     return jsonify({"error": "No wbid found for gage id"}), 404

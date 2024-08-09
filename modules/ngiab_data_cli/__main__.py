@@ -290,7 +290,8 @@ def get_wb_ids_from_gage_ids(input_file: Path) -> List[str]:
     wb_ids = []
     for gage_id in gage_ids:
         wb_id = get_wb_from_gage_id(gage_id)
-        wb_ids.append(wb_id)
+        wb_ids.extend(wb_id)
+    logging.info(f"Converted {len(gage_ids)} gage IDs to {len(wb_ids)} waterbody IDs")
     return wb_ids
 
 
