@@ -130,7 +130,7 @@ def make_noahowp_config(
 
 
 def configure_troute(
-    wb_id: str, config_dir: Path, start_time: datetime, end_time: datetime
+    cat_id: str, config_dir: Path, start_time: datetime, end_time: datetime
 ) -> int:
     with open(file_paths.template_troute_config(), "r") as file:
         troute = yaml.safe_load(file)  # Use safe_load for loading
@@ -140,7 +140,7 @@ def configure_troute(
     network_topology = troute["network_topology_parameters"]
     supernetwork_params = network_topology["supernetwork_parameters"]
 
-    geo_file_path = f"/ngen/ngen/data/config/{wb_id}_subset.gpkg"
+    geo_file_path = f"/ngen/ngen/data/config/{cat_id}_subset.gpkg"
     supernetwork_params["geo_file_path"] = geo_file_path
 
     troute["compute_parameters"]["restart_parameters"]["start_datetime"] = start_time.strftime(
@@ -177,10 +177,10 @@ def make_ngen_realization_json(
         json.dump(realization, file, indent=4)
 
 
-def create_realization(wb_id: str, start_time: datetime, end_time: datetime):
+def create_realization(cat_id: str, start_time: datetime, end_time: datetime):
     # quick wrapper to get the cfe realization working
     # without having to refactor this whole thing
-    paths = file_paths(wb_id)
+    paths = file_paths(cat_id)
 
     # make cfe init config files
     cfe_atts_path = paths.config_dir() / "cfe_noahowp_attributes.csv"
@@ -191,7 +191,7 @@ def create_realization(wb_id: str, start_time: datetime, end_time: datetime):
     make_noahowp_config(paths.config_dir(), cfe_atts_path, start_time, end_time)
 
     # make troute config files
-    num_timesteps = configure_troute(wb_id, paths.config_dir(), start_time, end_time)
+    num_timesteps = configure_troute(cat_id, paths.config_dir(), start_time, end_time)
 
     # create the realization
     make_ngen_realization_json(paths.config_dir(), start_time, end_time, num_timesteps)
@@ -200,9 +200,9 @@ def create_realization(wb_id: str, start_time: datetime, end_time: datetime):
 
 
 if __name__ == "__main__":
-    wb_id = "wb-1643991"
+    cat_id = "cat-1643991"
     start_time = datetime(2010, 1, 1, 0, 0, 0)
     end_time = datetime(2010, 1, 2, 0, 0, 0)
     # output_interval = 3600
     # nts = 2592
-    create_realization(wb_id, start_time, end_time)
+    create_realization(cat_id, start_time, end_time)

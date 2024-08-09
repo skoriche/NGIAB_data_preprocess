@@ -11,15 +11,15 @@ class file_paths:
 
     config_file = Path("~/.NGIAB_data_preprocess").expanduser()
 
-    def __init__(self, wb_id: str):
+    def __init__(self, cat_id: str):
         """
         Initialize the file_paths class with a water body ID.
         The following functions require a water body ID:
         config_dir, forcings_dir, geopackage_path, cached_nc_file
         Args:
-            wb_id (str): Water body ID.
+            cat_id (str): Water body ID.
         """
-        self.wb_id = wb_id
+        self.cat_id = cat_id
 
     @staticmethod
     def get_working_dir() -> Path:
@@ -101,7 +101,7 @@ class file_paths:
         return file_paths.data_sources() / "noah-owp-modular-init.namelist.input"
 
     def subset_dir(self) -> Path:
-        return file_paths.root_output_dir() / self.wb_id
+        return file_paths.root_output_dir() / self.cat_id
 
     def config_dir(self) -> Path:
         return file_paths.subset_dir(self) / "config"
@@ -110,7 +110,7 @@ class file_paths:
         return file_paths.subset_dir(self) / "forcings"
 
     def geopackage_path(self) -> Path:
-        return self.config_dir() / f"{self.wb_id}_subset.gpkg"
+        return self.config_dir() / f"{self.cat_id}_subset.gpkg"
 
     def cached_nc_file(self) -> Path:
         return file_paths.subset_dir(self) / "merged_data.nc"

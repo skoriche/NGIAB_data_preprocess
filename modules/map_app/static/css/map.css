@@ -29,18 +29,18 @@ div.leaflet-layer:nth-child(n+2) {
     filter: brightness(150%);
 }
 
-.selected-wb-layer {
-    stroke: var(--selected-wb-outline);
-    fill: var(--selected-wb-fill);
+.selected-cat-layer {
+    stroke: var(--selected-cat-outline);
+    fill: var(--selected-cat-fill);
 }
 
-.upstream-wb-layer {
-    stroke: var(--upstream-wb-outline);
-    fill: var(--upstream-wb-fill);
+.upstream-cat-layer {
+    stroke: var(--upstream-cat-outline);
+    fill: var(--upstream-cat-fill);
 }
 
-.flowline-to-wb-layer {
-    stroke: var(--flowline-to-wb-outline);
+.flowline-to-cat-layer {
+    stroke: var(--flowline-to-cat-outline);
 }
 
 .flowline-to-nexus-layer {

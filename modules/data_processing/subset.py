@@ -66,10 +66,10 @@ def subset_parquet(ids: List[str], paths: file_paths) -> None:
 
 
 def subset(
-    wb_ids: List[str], hydrofabric: str = file_paths.conus_hydrofabric(), subset_name: str = None
+    cat_ids: List[str], hydrofabric: str = file_paths.conus_hydrofabric(), subset_name: str = None
 ) -> str:
 
-    upstream_ids = get_upstream_ids(wb_ids)
+    upstream_ids = get_upstream_ids(cat_ids)
 
     if not subset_name:
         # if the name isn't provided, use the first upstream id

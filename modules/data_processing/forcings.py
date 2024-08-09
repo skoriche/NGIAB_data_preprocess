@@ -190,8 +190,8 @@ def compute_zonal_stats(
     )
 
 
-def setup_directories(wb_id: str) -> file_paths:
-    forcing_paths = file_paths(wb_id)
+def setup_directories(cat_id: str) -> file_paths:
+    forcing_paths = file_paths(cat_id)
     for folder in ["by_catchment", "temp"]:
         os.makedirs(forcing_paths.forcings_dir() / folder, exist_ok=True)
     return forcing_paths
@@ -220,8 +220,8 @@ if __name__ == "__main__":
     # Example usage
     start_time = "2010-01-01 00:00"
     end_time = "2010-01-02 00:00"
-    output_folder_name = "wb-1643991"
-    # looks in output/wb-1643991/config for the geopackage wb-1643991_subset.gpkg
-    # puts forcings in output/wb-1643991/forcings
+    output_folder_name = "cat-1643991"
+    # looks in output/cat-1643991/config for the geopackage cat-1643991_subset.gpkg
+    # puts forcings in output/cat-1643991/forcings
     logger.basicConfig(level=logging.DEBUG)
     create_forcings(start_time, end_time, output_folder_name)

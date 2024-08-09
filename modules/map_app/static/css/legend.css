@@ -49,16 +49,16 @@
     margin: 5px;
 }
 
-#legend_selected_wb_layer_icon {
-    background-color: var(--selected-wb-outline);
+#legend_selected_cat_layer_icon {
+    background-color: var(--selected-cat-outline);
 }
 
 #legend_upstream_layer_icon {
-    background-color: var(--upstream-wb-outline);
+    background-color: var(--upstream-cat-outline);
 }
 
-#legend_to_wb_icon {
-    background-color: var(--flowline-to-wb-outline);
+#legend_to_cat_icon {
+    background-color: var(--flowline-to-cat-outline);
 }
 
 #legend_to_nexus_icon {

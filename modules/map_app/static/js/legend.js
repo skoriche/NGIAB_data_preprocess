@@ -13,14 +13,14 @@ document.addEventListener('DOMContentLoaded', function () {
         if (f.target.classList.contains("legend_icon")) {
             $("#" + f.target.id).toggleClass("turned_off");
         }
-        if (f.target.id === "legend_selected_wb_layer_icon") {
-            $(".selected-wb-layer").toggle(200);
+        if (f.target.id === "legend_selected_cat_layer_icon") {
+            $(".selected-cat-layer").toggle(200);
         }
         if (f.target.id === "legend_upstream_layer_icon") {
-            $(".upstream-wb-layer").toggle(200);
+            $(".upstream-cat-layer").toggle(200);
         }
-        if (f.target.id === "legend_to_wb_icon") {
-            $(".flowline-to-wb-layer").toggle(200);
+        if (f.target.id === "legend_to_cat_icon") {
+            $(".flowline-to-cat-layer").toggle(200);
         }
         if (f.target.id === "legend_to_nexus_icon") {
             $(".flowline-to-nexus-layer").toggle(200);

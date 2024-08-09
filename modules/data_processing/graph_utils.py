@@ -84,6 +84,36 @@ def get_graph() -> ig.Graph:
     return network_graph
 
 
+def get_outlet_id(wb_or_cat_id: str) -> str:
+    """
+    Retrieves the ID of the node downstream of the given node in the hydrological network.
+
+    Given a node name, this function identifies the downstream node in the network, effectively tracing the water flow
+    towards the outlet.
+
+    When finding the upstreams of a 'wb' waterbody or 'cat' catchment, what we actually want is the upstreams of the outlet of the 'wb'.
+
+    Args:
+        name (str): The name of the node.
+
+    Returns:
+        str: The ID of the node downstream of the specified node.
+    """
+    # all the watebody and catchment IDs are the same, but the graph nodes are named wb-<id>
+    # remove everything that isn't a digit, then prepend wb- to get the graph node name
+    stem = "".join(filter(str.isdigit, wb_or_cat_id))
+    name = f"wb-{stem}"
+    graph = get_graph()
+    node_index = graph.vs.find(name=name).index
+    # this returns the current node, and every node downstream of it in order
+    downstream_node = graph.subcomponent(node_index, mode="OUT")
+    if len(downstream_node) >= 2:
+        # if there is more than one node in the list,
+        # then the second is the downstream node of the first
+        return graph.vs[downstream_node[1]]["name"]
+    return None
+
+
 def get_upstream_ids(names: Union[str, List[str]]) -> Set[str]:
     """
     Retrieves IDs of all nodes upstream of the given nodes in the hydrological network.
@@ -102,6 +132,8 @@ def get_upstream_ids(names: Union[str, List[str]]) -> Set[str]:
         names = [names]
     parent_ids = set()
     for name in names:
+        if "wb" in name or "cat" in name:
+            name = get_outlet_id(name)
         if name in parent_ids:
             continue
         node_index = graph.vs.find(name=name).index
