@@ -99,4 +99,6 @@ def move_files_to_config_dir(subset_output_dir: str) -> None:
     files = [x for x in subset_output_dir.iterdir()]
     for file in files:
         if file.suffix in [".csv", ".json", ".geojson"]:
+            if "partitions" in file.name:
+                continue
             os.system(f"mv {file} {config_dir}")

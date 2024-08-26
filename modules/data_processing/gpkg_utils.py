@@ -325,3 +325,26 @@ def get_cat_from_gage_id(gage_id: str, gpkg: Path = file_paths.conus_hydrofabric
 
     return cat_ids
 
+
+def get_cat_to_nex_flowpairs(hydrofabric: Path = file_paths.conus_hydrofabric()) -> List[Tuple]:
+    """
+    Retrieves the from and to IDs from the specified hydrofabric.
+
+    This functions returns a list of tuples containing (catchment ID, nexus ID).
+    The true network flows catchment to waterbody to nexus, this bypasses the waterbody and returns catchment to nexus.
+
+    Args:
+        hydrofabric (Path, optional): The file path to the hydrofabric. Defaults to file_paths.conus_hydrofabric().
+    Returns:
+        List[tuple]: A list of tuples containing the from and to IDs.
+    """
+    sql_query = "SELECT divide_id, toid FROM divides"
+    try:
+        con = sqlite3.connect(str(hydrofabric.absolute()))
+        edges = con.execute(sql_query).fetchall()
+        con.close()
+    except sqlite3.Error as e:
+        logger.error(f"SQLite error: {e}")
+        raise
+    unique_edges = list(set(edges))
+    return unique_edges

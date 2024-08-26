@@ -12,6 +12,7 @@ from collections import defaultdict
 from math import ceil
 
 from data_processing.file_paths import file_paths
+from data_processing.gpkg_utils import get_cat_to_nex_flowpairs
 
 
 def parse_cfe_parameters(cfe_noahowp_attributes: pandas.DataFrame) -> typing.Dict[str, dict]:
@@ -196,7 +197,45 @@ def create_realization(cat_id: str, start_time: datetime, end_time: datetime):
     # create the realization
     make_ngen_realization_json(paths.config_dir(), start_time, end_time, num_timesteps)
 
+    # create some partitions for parallelization
     paths.setup_run_folders()
+    create_partitions(paths)
+
+
+def create_partitions(paths: Path, num_partitions: int = None) -> None:
+    if num_partitions is None:
+        num_partitions = multiprocessing.cpu_count()
+
+    cat_to_nex_pairs = get_cat_to_nex_flowpairs(hydrofabric=paths.geopackage_path())
+    print(f"Creating {num_partitions} partitions for {len(cat_to_nex_pairs)} catchments.")
+    nexus = defaultdict(list)
+
+    for cat, nex in cat_to_nex_pairs:
+        nexus[nex].append(cat)
+
+    num_partitions = min(num_partitions, len(nexus))
+    partition_size = ceil(len(nexus) / num_partitions)
+    num_nexus = len(nexus)
+    nexus = list(nexus.items())
+    partitions = []
+    for i in range(0, num_nexus, partition_size):
+        part = {}
+        part["id"] = i // partition_size
+        part["cat-ids"] = []
+        part["nex-ids"] = []
+        part["remote-connections"] = []
+        for j in range(i, i + partition_size):
+            if j < num_nexus:
+                part["cat-ids"].extend(nexus[j][1])
+                part["nex-ids"].append(nexus[j][0])
+        partitions.append(part)
+
+    with open(paths.subset_dir() / f"partitions_{num_partitions}.json", "w") as f:
+        f.write(json.dumps({"partitions": partitions}, indent=4))
+
+    # write this to a metadata file to save on repeated file io to recalculate
+    with open(paths.metadata_dir() / "num_partitions", "w") as f:
+        f.write(str(num_partitions))
 
 
 if __name__ == "__main__":

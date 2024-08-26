@@ -322,9 +322,8 @@ def main() -> None:
         args = parse_arguments()
         cat_id_for_name, catchment_ids = validate_input(args)
         paths = file_paths(cat_id_for_name)
-        output_folder = paths.subset_dir()
-        output_folder.mkdir(parents=True, exist_ok=True)
-        logging.info(f"Using output folder: {output_folder}")
+        paths.subset_dir().mkdir(parents=True, exist_ok=True)
+        logging.info(f"Using output folder: {paths.subset_dir()}")
 
         if args.debug:
             logging.getLogger("data_processing").setLevel(logging.DEBUG)
@@ -349,7 +348,7 @@ def main() -> None:
             logging.info("Realization creation complete.")
 
         logging.info("All requested operations completed successfully.")
-        logging.info(f"Output folder: {output_folder}")
+        logging.info(f"Output folder: {paths.subset_dir()}")
         # set logging to ERROR level only as dask distributed can clutter the terminal with INFO messages
         # that look like errors
         if args.run:
@@ -359,16 +358,17 @@ def main() -> None:
                 "Subset, Forcings, and Realization must have been run at some point for this to succeed"
             )
             time.sleep(3)
-            with open(f"{str(output_folder)}/config/cfe_noahowp_attributes.csv", "r") as f:
-                num_catchments = len(f.readlines()) - 1
-            max_partitions = min(num_catchments, multiprocessing.cpu_count())
+            # open the partitions.json file and get the number of partitions
+            with open(paths.metadata_dir() / "num_partitions", "r") as f:
+                num_partitions = int(f.read())
+
             try:
                 s = subprocess.check_output("docker ps", shell=True)
             except:
                 logging.error("Docker is not running, please start Docker and try again.")
             try:
 
-                command = f'docker run --rm -it -v "{str(output_folder)}:/ngen/ngen/data" ngiab_clean /ngen/ngen/data/ auto {max_partitions}'
+                command = f'docker run --rm -it -v "{str(paths.subset_dir())}:/ngen/ngen/data" ngiab_clean /ngen/ngen/data/ auto {num_partitions}'
                 subprocess.run(command, shell=True)
                 logging.info("Next Gen run complete.")
             except:
