@@ -1,5 +1,5 @@
 async function subset() {
-    if (Object.keys(wb_id_dict).length === 0) {
+    if (Object.keys(cat_id_dict).length === 0) {
         alert('Please select at least one basin in the map before subsetting');
         return;
     }
@@ -11,7 +11,7 @@ async function subset() {
     fetch('/subset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(wb_id_dict),
+        body: JSON.stringify(cat_id_dict),
     })
         .then(response => response.text())
         .then(filename => {
@@ -31,7 +31,7 @@ async function subset() {
 
 
 async function subset_to_file() {
-    if (Object.keys(wb_id_dict).length === 0) {
+    if (Object.keys(cat_id_dict).length === 0) {
         alert('Please select at least one basin in the map before subsetting');
         return;
     }
@@ -43,7 +43,7 @@ async function subset_to_file() {
     fetch('/subset_to_file', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(wb_id_dict),
+        body: JSON.stringify(cat_id_dict),
     })
         .then(response => response.text())
         .then(filename => {

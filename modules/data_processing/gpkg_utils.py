@@ -90,7 +90,7 @@ def blob_to_geometry(blob: bytes) -> Union[Point, Polygon]:
     return geometry
 
 
-def blob_to_centroid(blob: bytes) -> Point:
+def blob_to_centre_point(blob: bytes) -> Point:
     """
     Convert a blob to a geometry.
     from http://www.geopackage.org/spec/#gpb_format
@@ -121,22 +121,22 @@ def blob_to_centroid(blob: bytes) -> Point:
     return Point(x, y)
 
 
-def get_wbid_from_point(coords):
+def get_catid_from_point(coords):
     """
-    Retrieves the watershed boundary ID (wbid) of the watershed that contains the given point.
+    Retrieves the watershed boundary ID (catid) of the watershed that contains the given point.
 
     Args:
         coords (dict): A dictionary containing the latitude and longitude coordinates of the point.
             Example: {"lat": 40.7128, "lng": -74.0060}
 
     Returns:
-        int: The watershed boundary ID (wbid) of the watershed containing the point.
+        int: The watershed boundary ID (catid) of the watershed containing the point.
 
     Raises:
         IndexError: If no watershed boundary is found for the given point.
 
     """
-    logger.info(f"Getting wbid for {coords}")
+    logger.info(f"Getting catid for {coords}")
     q = file_paths.conus_hydrofabric()
     d = {"col1": ["point"], "geometry": [Point(coords["lng"], coords["lat"])]}
     point = gpd.GeoDataFrame(d, crs="EPSG:4326")
@@ -297,7 +297,7 @@ def get_table_crs(gpkg: str, table: str) -> str:
     return crs
 
 
-def get_wb_from_gage_id(gage_id: str, gpkg: Path = file_paths.conus_hydrofabric()) -> str:
+def get_cat_from_gage_id(gage_id: str, gpkg: Path = file_paths.conus_hydrofabric()) -> str:
     """
     Get the nexus id of associated with a gage id.
 
@@ -312,15 +312,16 @@ def get_wb_from_gage_id(gage_id: str, gpkg: Path = file_paths.conus_hydrofabric(
 
     """
     gage_id = "".join([x for x in gage_id if x.isdigit()])
-    logger.info(f"Getting wbid for {gage_id}, in {gpkg}")
+    logger.info(f"Getting catid for {gage_id}, in {gpkg}")
     with sqlite3.connect(gpkg) as con:
         sql_query = f"SELECT id FROM hydrolocations WHERE hl_uri = 'Gages-{gage_id}'"
         result = con.execute(sql_query).fetchone()
         if result is None:
             raise IndexError(f"No nexus found for gage ID {gage_id}")
         nex_id = con.execute(sql_query).fetchone()[0]
-        sql_query = f"SELECT id FROM network WHERE toid = '{nex_id}'"
-        wb_id = con.execute(sql_query).fetchall()
-        wb_ids = [str(x[0]) for x in wb_id]
+        sql_query = f"SELECT divide_id FROM network WHERE toid = '{nex_id}'"
+        cat_id = con.execute(sql_query).fetchall()
+        cat_ids = [str(x[0]) for x in cat_id]
 
-    return wb_ids
+    return cat_ids
+

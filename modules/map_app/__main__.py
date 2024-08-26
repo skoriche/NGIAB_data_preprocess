@@ -80,6 +80,7 @@ def open_browser():
 
 def set_logs_to_warning():
     logging.getLogger("werkzeug").setLevel(logging.WARNING)
+    console_handler.setLevel(logging.DEBUG)
 
 
 if __name__ == "__main__":

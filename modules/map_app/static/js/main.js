@@ -1,5 +1,5 @@
-var wb_id_dict = {};
-var selected_wb_layer = null;
+var cat_id_dict = {};
+var selected_cat_layer = null;
 var upstream_maps = {};
 var flowline_layers = {};
 
@@ -7,32 +7,32 @@ var registered_layers = {}
 
 async function update_selected() {
     console.log('updating selected');
-    if (!(Object.keys(wb_id_dict).length === 0)) {
-        return fetch('/get_geojson_from_wbids', {
+    if (!(Object.keys(cat_id_dict).length === 0)) {
+        return fetch('/get_geojson_from_catids', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(wb_id_dict),
+            body: JSON.stringify(cat_id_dict),
         })
             .then(response => response.json())
             .then(data => {
-                // if the wb_id is already in the dict, remove the key
+                // if the cat_id is already in the dict, remove the key
                 // remove the old layer
-                if (selected_wb_layer) {
-                    map.removeLayer(selected_wb_layer);
+                if (selected_cat_layer) {
+                    map.removeLayer(selected_cat_layer);
                 }
                 console.log(data);
                 // add the new layer
-                selected_wb_layer = L.geoJSON(data).addTo(map);
-                selected_wb_layer.eachLayer(function (layer) {
-                    layer._path.classList.add('selected-wb-layer');
+                selected_cat_layer = L.geoJSON(data).addTo(map);
+                selected_cat_layer.eachLayer(function (layer) {
+                    layer._path.classList.add('selected-cat-layer');
                 });
             })
             .catch(error => {
                 console.error('Error:', error);
             });
     } else {
-        if (selected_wb_layer) {
-            map.removeLayer(selected_wb_layer);
+        if (selected_cat_layer) {
+            map.removeLayer(selected_cat_layer);
         }
         return Promise.resolve();
     }
@@ -40,15 +40,15 @@ async function update_selected() {
 
 async function populate_upstream() {
     console.log('populating upstream selected');
-    // drop any key that is not in the wb_id_dict
+    // drop any key that is not in the cat_id_dict
     for (const [key, value] of Object.entries(upstream_maps)) {
-        if (!(key in wb_id_dict)) {
+        if (!(key in cat_id_dict)) {
             map.removeLayer(value);
             delete upstream_maps[key];
         }
     }
-    // add any key that is in the wb_id_dict but not in the upstream_maps
-    for (const [key, value] of Object.entries(wb_id_dict)) {
+    // add any key that is in the cat_id_dict but not in the upstream_maps
+    for (const [key, value] of Object.entries(cat_id_dict)) {
         if (!(key in upstream_maps)) {
             upstream_maps[key] = null;
         }
@@ -59,26 +59,26 @@ async function populate_upstream() {
 
     const fetchPromises = Object.entries(upstream_maps).map(([key, value]) => {
         if (value === null) {
-            return fetch('/get_upstream_geojson_from_wbids', {
+            return fetch('/get_upstream_geojson_from_catids', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(key),
             })
                 .then(response => response.json())
                 .then(data => {
-                    // if the wb_id is already in the dict, remove the key
+                    // if the cat_id is already in the dict, remove the key
                     // remove the old layer
                     if (upstream_maps[key]) {
                         map.removeLayer(upstream_maps[key]);
                     }
                     console.log(data);
-                    // add the new layer if the downstream wb's still selected
-                    if (key in wb_id_dict) {
+                    // add the new layer if the downstream cat's still selected
+                    if (key in cat_id_dict) {
                         layer_group = L.geoJSON(data).addTo(map);
                         upstream_maps[key] = layer_group;
                         layer_group.eachLayer(function (layer) {
                             if (layer._path) {
-                                layer._path.classList.add('upstream-wb-layer');
+                                layer._path.classList.add('upstream-cat-layer');
                             }
                         });
                     }
@@ -94,17 +94,17 @@ async function populate_upstream() {
 
 async function populate_flowlines() {
     console.log('populating flowlines');
-    // drop any key that is not in the wb_id_dict
+    // drop any key that is not in the cat_id_dict
     for (const [key, value] of Object.entries(flowline_layers)) {
-        if (!(key in wb_id_dict)) {
+        if (!(key in cat_id_dict)) {
             for (i of flowline_layers[key]) {
                 map.removeLayer(i);
                 delete flowline_layers[key];
             }
         }
     }
-    // add any key that is in the wb_id_dict but not in the flowline_layers
-    for (const [key, value] of Object.entries(wb_id_dict)) {
+    // add any key that is in the cat_id_dict but not in the flowline_layers
+    for (const [key, value] of Object.entries(cat_id_dict)) {
         if (!(key in flowline_layers)) {
             flowline_layers[key] = null;
         }
@@ -115,14 +115,14 @@ async function populate_flowlines() {
 
     const fetchPromises = Object.entries(flowline_layers).map(([key, value]) => {
         if (value === null) {
-            return fetch('/get_flowlines_from_wbids', {
+            return fetch('/get_flowlines_from_catids', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(key),
             })
                 .then(response => response.json())
                 .then(data => {
-                    // if the wb_id is already in the dict, remove the key
+                    // if the cat_id is already in the dict, remove the key
                     // remove the old layer
                     if (flowline_layers[key]) {
                         for (i of flowline_layers[key]) {
@@ -131,20 +131,20 @@ async function populate_flowlines() {
                     }
                     // loud!
                     // console.log(data);
-                    to_wb = JSON.parse(data['to_wb']);
+                    to_cat = JSON.parse(data['to_cat']);
                     to_nexus = JSON.parse(data['to_nexus']);
                     nexus = JSON.parse(data['nexus']);
-                    // add the new layer if the downstream wb's still selected
-                    if (key in wb_id_dict) {
-                        to_wb_layer = L.geoJSON(to_wb).addTo(map);
+                    // add the new layer if the downstream cat's still selected
+                    if (key in cat_id_dict) {
+                        to_cat_layer = L.geoJSON(to_cat).addTo(map);
                         to_nexus_layer = L.geoJSON(to_nexus).addTo(map);
                         nexus_layer = L.geoJSON(nexus).addTo(map);
                         // hack to add css classes to the flowline layers
                         // using eachLayer as it waits for layer to be done updating
                         // directly accessing the _layers keys may not always work
-                        to_wb_layer.eachLayer(function (layer) {
+                        to_cat_layer.eachLayer(function (layer) {
                             if (layer._path) {
-                                layer._path.classList.add('flowline-to-wb-layer');
+                                layer._path.classList.add('flowline-to-cat-layer');
                             }
                         });
                         to_nexus_layer.eachLayer(function (layer) {
@@ -153,7 +153,7 @@ async function populate_flowlines() {
                             }
                         });
                     }
-                    flowline_layers[key] = [to_wb_layer, to_nexus_layer, nexus_layer];
+                    flowline_layers[key] = [to_cat_layer, to_nexus_layer, nexus_layer];
                 })
 
                 .catch(error => {
@@ -176,11 +176,11 @@ async function synchronizeUpdates() {
         // This block executes after all promises from populate_upstream and populate_flowlines have resolved
         console.log('All updates are complete');
         // BringToFront operations or any other operations to perform after updates
-        if (selected_wb_layer) {
-            selected_wb_layer.bringToFront();
+        if (selected_cat_layer) {
+            selected_cat_layer.bringToFront();
         }
         for (const [key, value] of Object.entries(flowline_layers)) {
-            if (key in wb_id_dict) {
+            if (key in cat_id_dict) {
                 value[0].bringToFront();
                 value[1].bringToFront();
             }
@@ -208,23 +208,23 @@ function onMapClick(event) {
         .then(response => response.json())
         .then(data => {
 
-            // if the wb_id is already in the dict, remove the key
-            if (data['wb_id'] in wb_id_dict) {
-                delete wb_id_dict[data['wb_id']];
+            // if the cat_id is already in the dict, remove the key
+            if (data['cat_id'] in cat_id_dict) {
+                delete cat_id_dict[data['cat_id']];
             }
             else {
                 // temporary fix to only allow one basin to be selected
-                wb_id_dict = {};
+                cat_id_dict = {};
                 // uncomment above line to allow multiple basins to be selected
-                wb_id_dict[data['wb_id']] = [lat, lng];
+                cat_id_dict[data['cat_id']] = [lat, lng];
             }
-            console.log('clicked on wb_id: ' + data['wb_id'] + ' coords :' + lat + ', ' + lng);
+            console.log('clicked on cat_id: ' + data['cat_id'] + ' coords :' + lat + ', ' + lng);
 
 
             synchronizeUpdates();
-            //$('#selected-basins').text(Object.keys(wb_id_dict).join(', '));
+            //$('#selected-basins').text(Object.keys(cat_id_dict).join(', '));
             // revert this line too
-            $('#selected-basins').text(Object.keys(wb_id_dict));
+            $('#selected-basins').text(Object.keys(cat_id_dict));
 
         })
         .catch(error => {
@@ -247,10 +247,10 @@ function select_by_lat_lon() {
     })
         .then(response => response.json())
         .then(data => {
-            wb_id = data['wb_id'];
-            wb_id_dict[wb_id] = [lat, lon];
+            cat_id = data['cat_id'];
+            cat_id_dict[cat_id] = [lat, lon];
             synchronizeUpdates();
-            $('#selected-basins').text(Object.keys(wb_id_dict));
+            $('#selected-basins').text(Object.keys(cat_id_dict));
         })
         .catch(error => {
             console.error('Error:', error);
@@ -260,29 +260,29 @@ function select_by_lat_lon() {
 $('#select-lat-lon-button').click(select_by_lat_lon);
 
 function select_by_id() {
-    wb_id_dict = {};
-    wb_ids = $('#wb_id_input').val();
+    cat_id_dict = {};
+    cat_ids = $('#cat_id_input').val();
 
-    wb_ids = wb_ids.split(',');
-    for (wb_id of wb_ids) {
-        wb_id_dict[wb_id] = [0, 0];
+    cat_ids = cat_ids.split(',');
+    for (cat_id of cat_ids) {
+        cat_id_dict[cat_id] = [0, 0];
     }
     synchronizeUpdates();
-    $('#selected-basins').text(Object.keys(wb_id_dict));
+    $('#selected-basins').text(Object.keys(cat_id_dict));
 }
 
 $('#select-button').click(select_by_id);
 
 function clear_selection() {
-    wb_id_dict = {};
+    cat_id_dict = {};
     synchronizeUpdates();
-    $('#selected-basins').text(Object.keys(wb_id_dict));
+    $('#selected-basins').text(Object.keys(cat_id_dict));
 }
 
 $('#clear-button').click(clear_selection);
 
-function get_wbid_from_gage_id(gage_id) {
-    return fetch('/get_wbid_from_gage_id', {
+function get_catid_from_gage_id(gage_id) {
+    return fetch('/get_catid_from_gage_id', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -293,7 +293,7 @@ function get_wbid_from_gage_id(gage_id) {
     })
         .then(response => response.json())
         .then(data => {
-            return data['wb_ids'];
+            return data['cat_ids'];
         })
         .catch(error => {
             console.error('Error:', error);
@@ -304,12 +304,12 @@ function select_by_gage_id() {
     gage_ids = $('#gage_id_input').val();
     gage_ids = gage_ids.split(',');
     for (gage_id of gage_ids) {
-        wb_ids = get_wbid_from_gage_id(gage_id);
-        wb_ids.then(function (result) {
+        cat_ids = get_catid_from_gage_id(gage_id);
+        cat_ids.then(function (result) {
             for (result of result) {
-                wb_id_dict[result] = [0, 0];
+                cat_id_dict[result] = [0, 0];
             }
-            $('#selected-basins').text(Object.keys(wb_id_dict));
+            $('#selected-basins').text(Object.keys(cat_id_dict));
         });
     }
     synchronizeUpdates();

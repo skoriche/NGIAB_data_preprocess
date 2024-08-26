@@ -92,28 +92,28 @@ Once all the steps are finished, you can run NGIAB on the folder shown underneat
 ## Arguments
 
 - `-h`, `--help`: Show the help message and exit.
-- `-i INPUT_FILE`, `--input_file INPUT_FILE`: Path to a CSV or TXT file containing a list of waterbody IDs, lat/lon pairs, or gage IDs; or a single waterbody ID (e.g., `wb-5173`), a single lat/lon pair, or a single gage ID.
-- `-l`, `--latlon`: Use latitude and longitude instead of waterbody IDs. When used with `-i`, the file should contain lat/lon pairs.
-- `-g`, `--gage`: Use gage IDs instead of waterbody IDs. When used with `-i`, the file should contain gage IDs.
-- `-s`, `--subset`: Subset the hydrofabric to the given waterbody IDs, locations, or gage IDs.
-- `-f`, `--forcings`: Generate forcings for the given waterbody IDs, locations, or gage IDs.
-- `-r`, `--realization`: Create a realization for the given waterbody IDs, locations, or gage IDs.
+- `-i INPUT_FILE`, `--input_file INPUT_FILE`: Path to a CSV or TXT file containing a list of catchment IDs, lat/lon pairs, or gage IDs; or a single catchment ID (e.g., `cat-5173`), a single lat/lon pair, or a single gage ID.
+- `-l`, `--latlon`: Use latitude and longitude instead of catchment IDs. When used with `-i`, the file should contain lat/lon pairs.
+- `-g`, `--gage`: Use gage IDs instead of catchment IDs. When used with `-i`, the file should contain gage IDs.
+- `-s`, `--subset`: Subset the hydrofabric to the given catchment IDs, locations, or gage IDs.
+- `-f`, `--forcings`: Generate forcings for the given catchment IDs, locations, or gage IDs.
+- `-r`, `--realization`: Create a realization for the given catchment IDs, locations, or gage IDs.
 - `--start_date START_DATE`: Start date for forcings/realization (format YYYY-MM-DD).
 - `--end_date END_DATE`: End date for forcings/realization (format YYYY-MM-DD).
-- `-o OUTPUT_NAME`, `--output_name OUTPUT_NAME`: Name of the subset to be created (default is the first waterbody ID in the input file).
+- `-o OUTPUT_NAME`, `--output_name OUTPUT_NAME`: Name of the subset to be created (default is the first catchment ID in the input file).
 
 ## Examples
 
 `-l`, `-g`, `-s`, `-f`, `-r` can be combined like normal CLI flags. For example, to subset, generate forcings, and create a realization, you can use `-sfr` or `-s -f -r`.
 
-1. Subset hydrofabric using waterbody IDs:
+1. Subset hydrofabric using catchment IDs:
    ```
-   python -m ngiab_data_cli -i waterbody_ids.txt -s
+   python -m ngiab_data_cli -i catchment_ids.txt -s
    ```
 
-2. Generate forcings using a single waterbody ID:
+2. Generate forcings using a single catchment ID:
    ```
-   python -m ngiab_data_cli -i wb-5173 -f --start_date 2023-01-01 --end_date 2023-12-31
+   python -m ngiab_data_cli -i cat-5173 -f --start_date 2023-01-01 --end_date 2023-12-31
    ```
 
 3. Create realization using lat/lon pairs from a CSV file:
@@ -138,22 +138,22 @@ Once all the steps are finished, you can run NGIAB on the folder shown underneat
 
 ## File Formats
 
-### 1. Waterbody ID input:
-- CSV file: A single column of waterbody IDs, or a column named 'wb_id', 'waterbody_id', or 'divide_id'.
-- TXT file: One waterbody ID per line.
+### 1. Catchment ID input:
+- CSV file: A single column of catchment IDs, or a column named 'cat_id', 'catchment_id', or 'divide_id'.
+- TXT file: One catchment ID per line.
 
-Example CSV (waterbody_ids.csv):
+Example CSV (catchment_ids.csv):
 ```
-wb_id,soil_type
-wb-5173,some
-wb-5174,data
-wb-5175,here
+cat_id,soil_type
+cat-5173,some
+cat-5174,data
+cat-5175,here
 ```
 Or:
 ```
-wb-5173
-wb-5174
-wb-5175
+cat-5173
+cat-5174
+cat-5175
 ```
 
 ### 2. Lat/Lon input:
@@ -195,6 +195,6 @@ Or:
 
 ## Output
 
-The script creates an output folder named after the first waterbody ID in the input file, the provided output name, or derived from the first lat/lon pair or gage ID. This folder will contain the results of the subsetting, forcings generation, and realization creation operations.
+The script creates an output folder named after the first catchment ID in the input file, the provided output name, or derived from the first lat/lon pair or gage ID. This folder will contain the results of the subsetting, forcings generation, and realization creation operations.
 
 </details>
