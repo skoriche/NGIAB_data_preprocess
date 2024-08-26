@@ -5,6 +5,8 @@ from typing import List
 from datetime import datetime
 from pathlib import Path
 import pandas as pd
+import subprocess
+import multiprocessing
 
 # Import colorama for cross-platform colored terminal text
 from colorama import Fore, Style, init
@@ -117,13 +119,18 @@ def parse_arguments() -> argparse.Namespace:
         action="store_true",
         help="enable debug logging",
     )
+    parser.add_argument(
+        "--run", action="store_true", help="Automatically run Next Gen against the output folder"
+    )
     return parser.parse_args()
 
 
 def validate_input(args: argparse.Namespace) -> None:
     """Validate input arguments."""
-    if not any([args.subset, args.forcings, args.realization]):
-        raise ValueError("At least one of --subset, --forcings, or --realization must be set.")
+    if not any([args.subset, args.forcings, args.realization, args.run]):
+        raise ValueError(
+            "At least one of --subset, --forcings, --realization, or --run must be set."
+        )
 
     if not args.input_file:
         raise ValueError(
@@ -345,6 +352,27 @@ def main() -> None:
         logging.info(f"Output folder: {output_folder}")
         # set logging to ERROR level only as dask distributed can clutter the terminal with INFO messages
         # that look like errors
+        if args.run:
+            logging.info("Running Next Gen using NGIAB...")
+            logging.warning("This will run without checking for missing files")
+            logging.warning(
+                "Subset, Forcings, and Realization must have been run at some point for this to succeed"
+            )
+            time.sleep(3)
+            with open(f"{str(output_folder)}/config/cfe_noahowp_attributes.csv", "r") as f:
+                num_catchments = len(f.readlines()) - 1
+            max_partitions = min(num_catchments, multiprocessing.cpu_count())
+            try:
+                s = subprocess.check_output("docker ps", shell=True)
+            except:
+                logging.error("Docker is not running, please start Docker and try again.")
+            try:
+
+                command = f'docker run --rm -it -v "{str(output_folder)}:/ngen/ngen/data" ngiab_clean /ngen/ngen/data/ auto {max_partitions}'
+                subprocess.run(command, shell=True)
+                logging.info("Next Gen run complete.")
+            except:
+                logging.error("Next Gen run failed.")
         set_logging_to_critical_only()
 
     except Exception as e:
