@@ -37,6 +37,8 @@ class ColoredFormatter(logging.Formatter):
             return f"{Fore.YELLOW}{message}{Style.RESET_ALL}"
         if record.name == "root":  # Only color info messages from this script green
             return f"{Fore.GREEN}{message}{Style.RESET_ALL}"
+        if record.levelno == logging.CRITICAL:
+            return f"{Fore.RED}{message}{Style.RESET_ALL}"
         return message
 
 
@@ -122,14 +124,33 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--run", action="store_true", help="Automatically run Next Gen against the output folder"
     )
-    return parser.parse_args()
+    parser.add_argument(
+        "--eval", action="store_true", help="Evaluate perforance of the model after running"
+    )
+    parser.add_argument(
+        "-a",
+        "--all",
+        action="store_true",
+        help="Run all operations: subset, forcings, realization, run Next Gen, and evaluate",
+    )
+
+    args = parser.parse_args()
+
+    if args.all:
+        args.subset = True
+        args.forcings = True
+        args.realization = True
+        args.run = True
+        args.eval = True
+
+    return args
 
 
 def validate_input(args: argparse.Namespace) -> None:
     """Validate input arguments."""
-    if not any([args.subset, args.forcings, args.realization, args.run]):
+    if not any([args.subset, args.forcings, args.realization, args.run, args.eval]):
         raise ValueError(
-            "At least one of --subset, --forcings, --realization, or --run must be set."
+            "At least one of --subset, --forcings, --realization, --eval, or --run must be set."
         )
 
     if not args.input_file:
@@ -310,7 +331,7 @@ def get_cat_ids_from_gage_ids(input_file: Path) -> List[str]:
     cat_ids = []
     for gage_id in gage_ids:
         cat_id = get_cat_from_gage_id(gage_id)
-        cat_ids.extend(cat_id)
+        cat_ids.append(cat_id)
     logging.info(f"Converted {len(gage_ids)} gage IDs to {len(cat_ids)} catchment IDs")
     return cat_ids
 
@@ -373,6 +394,19 @@ def main() -> None:
                 logging.info("Next Gen run complete.")
             except:
                 logging.error("Next Gen run failed.")
+
+        if args.eval:
+            logging.info("Evaluating model performance...")
+            image_name = "joshcu/ngiab_eval"
+            try:
+                command = f'docker pull {image_name} && docker run --rm -it -v "{str(paths.subset_dir())}:/ngen/ngen/data" --user $(id -u):$(id -g) {image_name} -p'
+                if args.debug:
+                    command += "d"
+                subprocess.run(command, shell=True)
+                logging.info("Evaluation complete.")
+            except:
+                logging.error("Evaluation failed.")
+
         set_logging_to_critical_only()
 
     except Exception as e:

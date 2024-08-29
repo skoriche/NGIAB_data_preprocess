@@ -312,18 +312,31 @@ def get_cat_from_gage_id(gage_id: str, gpkg: Path = file_paths.conus_hydrofabric
 
     """
     gage_id = "".join([x for x in gage_id if x.isdigit()])
-    logger.info(f"Getting catid for {gage_id}, in {gpkg}")
-    with sqlite3.connect(gpkg) as con:
-        sql_query = f"SELECT id FROM hydrolocations WHERE hl_uri = 'Gages-{gage_id}'"
-        result = con.execute(sql_query).fetchone()
-        if result is None:
-            raise IndexError(f"No nexus found for gage ID {gage_id}")
-        nex_id = con.execute(sql_query).fetchone()[0]
-        sql_query = f"SELECT divide_id FROM network WHERE toid = '{nex_id}'"
-        cat_id = con.execute(sql_query).fetchall()
-        cat_ids = [str(x[0]) for x in cat_id]
 
-    return cat_ids
+    if len(gage_id) < 8:
+        logger.warning(f"Gages in the hydrofabric are at least 8 digits {gage_id}")
+        old_gage_id = gage_id
+        gage_id = f"{int(gage_id):08d}"
+        logger.warning(f"Converted {old_gage_id} to {gage_id}")
+
+    logger.info(f"Getting catid for {gage_id}, in {gpkg}")
+
+    # the hydrolocations table seems to have a bunch of errors in it
+    # use flowpath_attributes instead
+    with sqlite3.connect(gpkg) as con:
+        sql_query = f"SELECT id FROM flowpath_attributes WHERE rl_gages LIKE '%{gage_id}%'"
+        result = con.execute(sql_query).fetchall()
+        if result is None or len(result) == 0:
+            raise IndexError(f"No nexus found for gage ID {gage_id}")
+        if len(result) > 1:
+            logger.critical(
+                f"Gage ID {gage_id} is associated with multiple waterbodies, this is likely an issue with the hydrofabric"
+            )
+            raise IndexError(f"Multiple waterbodies found for gage ID {gage_id}")
+        wb_id = result[0][0]
+        cat_id = wb_id.replace("wb", "cat")
+
+    return cat_id
 
 
 def get_cat_to_nex_flowpairs(hydrofabric: Path = file_paths.conus_hydrofabric()) -> List[Tuple]:
