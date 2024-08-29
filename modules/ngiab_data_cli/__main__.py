@@ -389,7 +389,7 @@ def main() -> None:
                 logging.error("Docker is not running, please start Docker and try again.")
             try:
 
-                command = f'docker run --rm -it -v "{str(paths.subset_dir())}:/ngen/ngen/data" ngiab_clean /ngen/ngen/data/ auto {num_partitions}'
+                command = f'docker run --rm -it -v "{str(paths.subset_dir())}:/ngen/ngen/data" awiciroh/ciroh-ngen-image:latest-x86 /ngen/ngen/data/ auto {num_partitions}'
                 subprocess.run(command, shell=True)
                 logging.info("Next Gen run complete.")
             except:

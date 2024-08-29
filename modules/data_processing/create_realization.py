@@ -199,7 +199,7 @@ def create_realization(cat_id: str, start_time: datetime, end_time: datetime):
 
     # create some partitions for parallelization
     paths.setup_run_folders()
-    create_partitions(paths)
+    # create_partitions(paths)
 
 
 def create_partitions(paths: Path, num_partitions: int = None) -> None:
