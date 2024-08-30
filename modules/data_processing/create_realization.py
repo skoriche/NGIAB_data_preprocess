@@ -138,6 +138,9 @@ def configure_troute(
 
     time_step_size = troute["compute_parameters"]["forcing_parameters"]["dt"]
 
+    # troute seems to be ok with setting this to your cpu_count
+    troute["compute_parameters"]["cpu_pool"] = multiprocessing.cpu_count()
+
     network_topology = troute["network_topology_parameters"]
     supernetwork_params = network_topology["supernetwork_parameters"]
 
