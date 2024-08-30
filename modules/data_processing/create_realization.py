@@ -59,7 +59,7 @@ def parse_cfe_parameters(cfe_noahowp_attributes: pandas.DataFrame) -> typing.Dic
         d["expon"] = "6.0[]"
         # initial condition for groundwater reservoir - it is the ground water as a
         # decimal fraction of the maximum groundwater storage (max_gw_storage) for the initial timestep
-        d["gw_storage"] = "0.05[m/m]"
+        d["gw_storage"] = "0.007[m/m]"
         # field capacity
         d["alpha_fc"] = "0.33"
         # initial condition for soil reservoir - it is the water in the soil as a
