@@ -48,15 +48,16 @@ def parse_cfe_parameters(cfe_noahowp_attributes: pandas.DataFrame) -> typing.Dic
         # optional; defaults to 1.0
         d["soil_params.expon"] = f'{row["gw_Expon"]}[]' if row["gw_Expon"] is not None else "1.0[]"
         # not sure if this is the correct key
-        d["soil_params.expon_secondary"] = (
-            f'{row["gw_Coeff"]}[]' if row["gw_Coeff"] is not None else "1.0[]"
-        )
+        d["soil_params.expon_secondary"] = "1.0[]"
+
         # maximum storage in the conceptual reservoir
         d["max_gw_storage"] = f'{row["gw_Zmax"]}[m]' if row["gw_Zmax"] is not None else "0.011[m]"
         # primary outlet coefficient
-        d["Cgw"] = "0.0018[m h-1]"
+        d["Cgw"] = (
+            f'{row["gw_Coeff"]}[m h-1]' if row["gw_Coeff"] is not None else "0.0018[m h-1]"
+        )
         # exponent parameter (1.0 for linear reservoir)
-        d["expon"] = "6.0[]"
+        d["expon"] = f"{row["gw_Expon"]}[]"
         # initial condition for groundwater reservoir - it is the ground water as a
         # decimal fraction of the maximum groundwater storage (max_gw_storage) for the initial timestep
         d["gw_storage"] = "0.007[m/m]"
@@ -80,7 +81,7 @@ def parse_cfe_parameters(cfe_noahowp_attributes: pandas.DataFrame) -> typing.Dic
         # set to 1 if forcing_file=BMI
         d["num_timesteps"] = "1"
         # prints various debug and bmi info
-        d["verbosity"] = "1"
+        d["verbosity"] = "0"
         d["DEBUG"] = "0"
         # Parameter in the surface runoff parameterization
         # (https://mikejohnson51.github.io/hyAggregate/#Routing_Attributes)
