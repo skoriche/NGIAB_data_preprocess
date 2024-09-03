@@ -323,16 +323,22 @@ def get_cat_from_gage_id(gage_id: str, gpkg: Path = file_paths.conus_hydrofabric
 
     # the hydrolocations table seems to have a bunch of errors in it
     # use flowpath_attributes instead
+    # both have errors, cross reference them
     with sqlite3.connect(gpkg) as con:
-        sql_query = f"SELECT id FROM flowpath_attributes WHERE rl_gages LIKE '%{gage_id}%'"
+        sql_query = f"""SELECT f.id 
+                        FROM flowpaths AS f 
+                        JOIN hydrolocations AS h ON f.toid = h.id
+                        JOIN flowpath_attributes AS fa ON f.id = fa.id
+                        WHERE h.hl_uri = 'Gages-{gage_id}' 
+                        AND fa.rl_gages LIKE '%{gage_id}%'"""
         result = con.execute(sql_query).fetchall()
-        if result is None or len(result) == 0:
-            raise IndexError(f"No nexus found for gage ID {gage_id}")
+        if len(result) == 0:
+            logger.critical(f"Gage ID {gage_id} is not associated with any waterbodies")
+            raise IndexError(f"Could not find a waterbody for {gage_id}")
         if len(result) > 1:
-            logger.critical(
-                f"Gage ID {gage_id} is associated with multiple waterbodies, this is likely an issue with the hydrofabric"
-            )
-            raise IndexError(f"Multiple waterbodies found for gage ID {gage_id}")
+            logger.critical(f"Gage ID {gage_id} is associated with multiple waterbodies")
+            raise IndexError(f"Could not find a unique waterbody for {gage_id}")
+
         wb_id = result[0][0]
         cat_id = wb_id.replace("wb", "cat")
 
