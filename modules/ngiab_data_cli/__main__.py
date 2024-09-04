@@ -6,7 +6,6 @@ from datetime import datetime
 from pathlib import Path
 import pandas as pd
 import subprocess
-import multiprocessing
 
 # Import colorama for cross-platform colored terminal text
 from colorama import Fore, Style, init
@@ -388,24 +387,23 @@ def main() -> None:
             except:
                 logging.error("Docker is not running, please start Docker and try again.")
             try:
-
-                command = f'docker run --rm -it -v "{str(paths.subset_dir())}:/ngen/ngen/data" awiciroh/ciroh-ngen-image:latest-x86 /ngen/ngen/data/ auto {num_partitions}'
+                # right now this expects a local hardcoded image name, while this is still a hidden feature it's fine
+                command = f'docker run --rm -it -v "{str(paths.subset_dir())}:/ngen/ngen/data" ngiab_prod /ngen/ngen/data/ auto {num_partitions}'
                 subprocess.run(command, shell=True)
                 logging.info("Next Gen run complete.")
             except:
                 logging.error("Next Gen run failed.")
 
         if args.eval:
-            logging.info("Evaluating model performance...")
-            image_name = "joshcu/ngiab_eval"
             try:
-                command = f'docker pull {image_name} && docker run --rm -it -v "{str(paths.subset_dir())}:/ngen/ngen/data" --user $(id -u):$(id -g) {image_name} -p'
-                if args.debug:
-                    command += "d"
-                subprocess.run(command, shell=True)
-                logging.info("Evaluation complete.")
-            except:
-                logging.error("Evaluation failed.")
+                from ngiab_eval.__main__ import evaluate_folder
+
+                logging.info("Evaluating model performance...")
+                evaluate_folder(paths.subset_dir())
+            except ImportError:
+                logging.error(
+                    "Evaluation module not found. Please install the ngiab_eval package to evaluate model performance."
+                )
 
         set_logging_to_critical_only()
 
