@@ -6,12 +6,9 @@ on:
     branches:
       - main
 jobs:
-  pypi-publish:
-    name: Publish release to PyPI
+  pip-build:
+    name: build pip package withouth publishing
     runs-on: ubuntu-latest
-    environment:
-      name: pypi
-      url: https://pypi.org/p/ngiab_data_preprocess
     permissions:
       id-token: write
     steps:
