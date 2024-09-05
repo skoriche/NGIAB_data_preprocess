@@ -203,7 +203,7 @@ def create_realization(cat_id: str, start_time: datetime, end_time: datetime):
 
     # create some partitions for parallelization
     paths.setup_run_folders()
-    # create_partitions(paths)
+    create_partitions(paths)
 
 
 def create_partitions(paths: Path, num_partitions: int = None) -> None:
@@ -218,24 +218,24 @@ def create_partitions(paths: Path, num_partitions: int = None) -> None:
         nexus[nex].append(cat)
 
     num_partitions = min(num_partitions, len(nexus))
-    partition_size = ceil(len(nexus) / num_partitions)
-    num_nexus = len(nexus)
-    nexus = list(nexus.items())
-    partitions = []
-    for i in range(0, num_nexus, partition_size):
-        part = {}
-        part["id"] = i // partition_size
-        part["cat-ids"] = []
-        part["nex-ids"] = []
-        part["remote-connections"] = []
-        for j in range(i, i + partition_size):
-            if j < num_nexus:
-                part["cat-ids"].extend(nexus[j][1])
-                part["nex-ids"].append(nexus[j][0])
-        partitions.append(part)
+    # partition_size = ceil(len(nexus) / num_partitions)
+    # num_nexus = len(nexus)
+    # nexus = list(nexus.items())
+    # partitions = []
+    # for i in range(0, num_nexus, partition_size):
+    #     part = {}
+    #     part["id"] = i // partition_size
+    #     part["cat-ids"] = []
+    #     part["nex-ids"] = []
+    #     part["remote-connections"] = []
+    #     for j in range(i, i + partition_size):
+    #         if j < num_nexus:
+    #             part["cat-ids"].extend(nexus[j][1])
+    #             part["nex-ids"].append(nexus[j][0])
+    #     partitions.append(part)
 
-    with open(paths.subset_dir() / f"partitions_{num_partitions}.json", "w") as f:
-        f.write(json.dumps({"partitions": partitions}, indent=4))
+    # with open(paths.subset_dir() / f"partitions_{num_partitions}.json", "w") as f:
+    #     f.write(json.dumps({"partitions": partitions}, indent=4))
 
     # write this to a metadata file to save on repeated file io to recalculate
     with open(paths.metadata_dir() / "num_partitions", "w") as f:
