@@ -12,6 +12,7 @@ from collections import defaultdict
 from math import ceil
 
 from data_processing.file_paths import file_paths
+from data_processing.gpkg_utils import get_cat_to_nex_flowpairs
 
 
 def parse_cfe_parameters(cfe_noahowp_attributes: pandas.DataFrame) -> typing.Dict[str, dict]:
@@ -47,18 +48,19 @@ def parse_cfe_parameters(cfe_noahowp_attributes: pandas.DataFrame) -> typing.Dic
         # optional; defaults to 1.0
         d["soil_params.expon"] = f'{row["gw_Expon"]}[]' if row["gw_Expon"] is not None else "1.0[]"
         # not sure if this is the correct key
-        d["soil_params.expon_secondary"] = (
-            f'{row["gw_Coeff"]}[]' if row["gw_Coeff"] is not None else "1.0[]"
-        )
+        d["soil_params.expon_secondary"] = "1.0[]"
+
         # maximum storage in the conceptual reservoir
         d["max_gw_storage"] = f'{row["gw_Zmax"]}[m]' if row["gw_Zmax"] is not None else "0.011[m]"
         # primary outlet coefficient
-        d["Cgw"] = "0.0018[m h-1]"
+        d["Cgw"] = (
+            f'{row["gw_Coeff"]}[m h-1]' if row["gw_Coeff"] is not None else "0.0018[m h-1]"
+        )
         # exponent parameter (1.0 for linear reservoir)
-        d["expon"] = "6.0[]"
+        d["expon"] = f"{row["gw_Expon"]}[]"
         # initial condition for groundwater reservoir - it is the ground water as a
         # decimal fraction of the maximum groundwater storage (max_gw_storage) for the initial timestep
-        d["gw_storage"] = "0.05[m/m]"
+        d["gw_storage"] = "0.007[m/m]"
         # field capacity
         d["alpha_fc"] = "0.33"
         # initial condition for soil reservoir - it is the water in the soil as a
@@ -79,7 +81,7 @@ def parse_cfe_parameters(cfe_noahowp_attributes: pandas.DataFrame) -> typing.Dic
         # set to 1 if forcing_file=BMI
         d["num_timesteps"] = "1"
         # prints various debug and bmi info
-        d["verbosity"] = "1"
+        d["verbosity"] = "0"
         d["DEBUG"] = "0"
         # Parameter in the surface runoff parameterization
         # (https://mikejohnson51.github.io/hyAggregate/#Routing_Attributes)
@@ -137,6 +139,9 @@ def configure_troute(
 
     time_step_size = troute["compute_parameters"]["forcing_parameters"]["dt"]
 
+    # troute seems to be ok with setting this to your cpu_count
+    troute["compute_parameters"]["cpu_pool"] = multiprocessing.cpu_count()
+
     network_topology = troute["network_topology_parameters"]
     supernetwork_params = network_topology["supernetwork_parameters"]
 
@@ -156,7 +161,7 @@ def configure_troute(
     # not setting this will cause troute to output one netcdf file per timestep
     troute["output_parameters"]["stream_output"]["stream_output_time"] = number_of_hourly_steps
 
-    with open(config_dir / "ngen.yaml", "w") as file:
+    with open(config_dir / "troute.yaml", "w") as file:
         yaml.dump(troute, file)
 
     return nts
@@ -196,7 +201,45 @@ def create_realization(cat_id: str, start_time: datetime, end_time: datetime):
     # create the realization
     make_ngen_realization_json(paths.config_dir(), start_time, end_time, num_timesteps)
 
+    # create some partitions for parallelization
     paths.setup_run_folders()
+    create_partitions(paths)
+
+
+def create_partitions(paths: Path, num_partitions: int = None) -> None:
+    if num_partitions is None:
+        num_partitions = multiprocessing.cpu_count()
+
+    cat_to_nex_pairs = get_cat_to_nex_flowpairs(hydrofabric=paths.geopackage_path())
+    print(f"Creating {num_partitions} partitions for {len(cat_to_nex_pairs)} catchments.")
+    nexus = defaultdict(list)
+
+    for cat, nex in cat_to_nex_pairs:
+        nexus[nex].append(cat)
+
+    num_partitions = min(num_partitions, len(nexus))
+    # partition_size = ceil(len(nexus) / num_partitions)
+    # num_nexus = len(nexus)
+    # nexus = list(nexus.items())
+    # partitions = []
+    # for i in range(0, num_nexus, partition_size):
+    #     part = {}
+    #     part["id"] = i // partition_size
+    #     part["cat-ids"] = []
+    #     part["nex-ids"] = []
+    #     part["remote-connections"] = []
+    #     for j in range(i, i + partition_size):
+    #         if j < num_nexus:
+    #             part["cat-ids"].extend(nexus[j][1])
+    #             part["nex-ids"].append(nexus[j][0])
+    #     partitions.append(part)
+
+    # with open(paths.subset_dir() / f"partitions_{num_partitions}.json", "w") as f:
+    #     f.write(json.dumps({"partitions": partitions}, indent=4))
+
+    # write this to a metadata file to save on repeated file io to recalculate
+    with open(paths.metadata_dir() / "num_partitions", "w") as f:
+        f.write(str(num_partitions))
 
 
 if __name__ == "__main__":

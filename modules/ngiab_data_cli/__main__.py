@@ -5,6 +5,7 @@ from typing import List
 from datetime import datetime
 from pathlib import Path
 import pandas as pd
+import subprocess
 
 # Import colorama for cross-platform colored terminal text
 from colorama import Fore, Style, init
@@ -35,6 +36,8 @@ class ColoredFormatter(logging.Formatter):
             return f"{Fore.YELLOW}{message}{Style.RESET_ALL}"
         if record.name == "root":  # Only color info messages from this script green
             return f"{Fore.GREEN}{message}{Style.RESET_ALL}"
+        if record.levelno == logging.CRITICAL:
+            return f"{Fore.RED}{message}{Style.RESET_ALL}"
         return message
 
 
@@ -117,13 +120,43 @@ def parse_arguments() -> argparse.Namespace:
         action="store_true",
         help="enable debug logging",
     )
-    return parser.parse_args()
+    parser.add_argument(
+        "--run", action="store_true", help="Automatically run Next Gen against the output folder"
+    )
+    parser.add_argument(
+        "--validate", action="store_true", help="Run every missing step required to run ngiab"
+    )
+    parser.add_argument(
+        "--eval", action="store_true", help="Evaluate perforance of the model after running"
+    )
+    parser.add_argument(
+        "-a",
+        "--all",
+        action="store_true",
+        help="Run all operations: subset, forcings, realization, run Next Gen, and evaluate",
+    )
+
+    args = parser.parse_args()
+
+    if args.all:
+        args.subset = True
+        args.forcings = True
+        args.realization = True
+        args.run = True
+        args.eval = True
+
+    if args.run:
+        args.validate = True
+
+    return args
 
 
 def validate_input(args: argparse.Namespace) -> None:
     """Validate input arguments."""
-    if not any([args.subset, args.forcings, args.realization]):
-        raise ValueError("At least one of --subset, --forcings, or --realization must be set.")
+    if not any([args.subset, args.forcings, args.realization, args.run, args.eval, args.validate]):
+        raise ValueError(
+            "At least one of --subset, --forcings, --realization, --eval, or --run must be set."
+        )
 
     if not args.input_file:
         raise ValueError(
@@ -308,6 +341,22 @@ def get_cat_ids_from_gage_ids(input_file: Path) -> List[str]:
     return cat_ids
 
 
+def validate_run_directory(paths: file_paths, args):
+    # checks the folder that is going to be run, enables steps that are needed to populate the folder
+    if not paths.subset_dir().exists():
+        args.subset = True
+        args.forcings = True
+        args.realization = True
+        return args
+    if not paths.forcings_dir().exists():
+        args.forcing = True
+    # this folder only exists if realization generation has run
+    cat_config_dir = paths.config_dir() / "cat_config"
+    if not cat_config_dir.exists():
+        args.realization = True
+    return args
+
+
 def main() -> None:
     setup_logging()
 
@@ -315,9 +364,11 @@ def main() -> None:
         args = parse_arguments()
         cat_id_for_name, catchment_ids = validate_input(args)
         paths = file_paths(cat_id_for_name)
-        output_folder = paths.subset_dir()
-        output_folder.mkdir(parents=True, exist_ok=True)
-        logging.info(f"Using output folder: {output_folder}")
+        if args.validate:
+            args = validate_run_directory(paths, args)
+
+        paths.subset_dir().mkdir(parents=True, exist_ok=True)
+        logging.info(f"Using output folder: {paths.subset_dir()}")
 
         if args.debug:
             logging.getLogger("data_processing").setLevel(logging.DEBUG)
@@ -342,9 +393,38 @@ def main() -> None:
             logging.info("Realization creation complete.")
 
         logging.info("All requested operations completed successfully.")
-        logging.info(f"Output folder: {output_folder}")
+        logging.info(f"Output folder: {paths.subset_dir()}")
         # set logging to ERROR level only as dask distributed can clutter the terminal with INFO messages
         # that look like errors
+        if args.run:
+            logging.info("Running Next Gen using NGIAB...")
+            # open the partitions.json file and get the number of partitions
+            with open(paths.metadata_dir() / "num_partitions", "r") as f:
+                num_partitions = int(f.read())
+
+            try:
+                s = subprocess.check_output("docker ps", shell=True)
+            except:
+                logging.error("Docker is not running, please start Docker and try again.")
+            try:
+                # right now this expects a local hardcoded image name, while this is still a hidden feature it's fine
+                command = f'docker run --rm -it -v "{str(paths.subset_dir())}:/ngen/ngen/data" joshcu/ngiab_datastream /ngen/ngen/data/ auto {num_partitions}'
+                subprocess.run(command, shell=True)
+                logging.info("Next Gen run complete.")
+            except:
+                logging.error("Next Gen run failed.")
+
+        if args.eval:
+            try:
+                from ngiab_eval.__main__ import evaluate_folder
+
+                logging.info("Evaluating model performance...")
+                evaluate_folder(paths.subset_dir())
+            except ImportError:
+                logging.error(
+                    "Evaluation module not found. Please install the ngiab_eval package to evaluate model performance."
+                )
+
         set_logging_to_critical_only()
 
     except Exception as e:

@@ -109,6 +109,9 @@ class file_paths:
     def forcings_dir(self) -> Path:
         return file_paths.subset_dir(self) / "forcings"
 
+    def metadata_dir(self) -> Path:
+        return file_paths.subset_dir(self) / "metadata"
+
     def geopackage_path(self) -> Path:
         return self.config_dir() / f"{self.cat_id}_subset.gpkg"
 
@@ -122,3 +125,4 @@ class file_paths:
         Path(self.subset_dir() / "outputs" / "ngen").mkdir(parents=True, exist_ok=True)
         Path(self.subset_dir() / "outputs" / "parquet").mkdir(parents=True, exist_ok=True)
         Path(self.subset_dir() / "outputs" / "troute").mkdir(parents=True, exist_ok=True)
+        Path(self.subset_dir() / "metadata").mkdir(parents=True, exist_ok=True)
