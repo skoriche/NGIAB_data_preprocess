@@ -124,6 +124,9 @@ def parse_arguments() -> argparse.Namespace:
         "--run", action="store_true", help="Automatically run Next Gen against the output folder"
     )
     parser.add_argument(
+        "--validate", action="store_true", help="Run every missing step required to run ngiab"
+    )
+    parser.add_argument(
         "--eval", action="store_true", help="Evaluate perforance of the model after running"
     )
     parser.add_argument(
@@ -142,12 +145,15 @@ def parse_arguments() -> argparse.Namespace:
         args.run = True
         args.eval = True
 
+    if args.run:
+        args.validate = True
+
     return args
 
 
 def validate_input(args: argparse.Namespace) -> None:
     """Validate input arguments."""
-    if not any([args.subset, args.forcings, args.realization, args.run, args.eval]):
+    if not any([args.subset, args.forcings, args.realization, args.run, args.eval, args.validate]):
         raise ValueError(
             "At least one of --subset, --forcings, --realization, --eval, or --run must be set."
         )
@@ -335,6 +341,22 @@ def get_cat_ids_from_gage_ids(input_file: Path) -> List[str]:
     return cat_ids
 
 
+def validate_run_directory(paths: file_paths, args):
+    # checks the folder that is going to be run, enables steps that are needed to populate the folder
+    if not paths.subset_dir().exists():
+        args.subset = True
+        args.forcings = True
+        args.realization = True
+        return args
+    if not paths.forcings_dir().exists():
+        args.forcing = True
+    # this folder only exists if realization generation has run
+    cat_config_dir = paths.config_dir() / "cat_config"
+    if not cat_config_dir.exists():
+        args.realization = True
+    return args
+
+
 def main() -> None:
     setup_logging()
 
@@ -342,6 +364,9 @@ def main() -> None:
         args = parse_arguments()
         cat_id_for_name, catchment_ids = validate_input(args)
         paths = file_paths(cat_id_for_name)
+        if args.validate:
+            args = validate_run_directory(paths, args)
+
         paths.subset_dir().mkdir(parents=True, exist_ok=True)
         logging.info(f"Using output folder: {paths.subset_dir()}")
 
@@ -373,11 +398,6 @@ def main() -> None:
         # that look like errors
         if args.run:
             logging.info("Running Next Gen using NGIAB...")
-            logging.warning("This will run without checking for missing files")
-            logging.warning(
-                "Subset, Forcings, and Realization must have been run at some point for this to succeed"
-            )
-            time.sleep(3)
             # open the partitions.json file and get the number of partitions
             with open(paths.metadata_dir() / "num_partitions", "r") as f:
                 num_partitions = int(f.read())
