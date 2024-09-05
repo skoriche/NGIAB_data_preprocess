@@ -92,7 +92,7 @@
         "nts": 15264.0
     },
     "routing": {
-        "t_route_config_file_with_path": "/ngen/ngen/data/config/ngen.yaml"
+        "t_route_config_file_with_path": "/ngen/ngen/data/config/troute.yaml"
     },
     "output_root": "/ngen/ngen/data/outputs/ngen"
 }

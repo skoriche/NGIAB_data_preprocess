@@ -161,7 +161,7 @@ def configure_troute(
     # not setting this will cause troute to output one netcdf file per timestep
     troute["output_parameters"]["stream_output"]["stream_output_time"] = number_of_hourly_steps
 
-    with open(config_dir / "ngen.yaml", "w") as file:
+    with open(config_dir / "troute.yaml", "w") as file:
         yaml.dump(troute, file)
 
     return nts
