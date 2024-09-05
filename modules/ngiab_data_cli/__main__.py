@@ -349,7 +349,7 @@ def validate_run_directory(paths: file_paths, args):
         args.realization = True
         return args
     if not paths.forcings_dir().exists():
-        args.forcing = True
+        args.forcings = True
     # this folder only exists if realization generation has run
     cat_config_dir = paths.config_dir() / "cat_config"
     if not cat_config_dir.exists():
