@@ -24,18 +24,15 @@ This tool prepares data to run a next gen simulation by creating a run package t
 ## Requirements
 
 * This tool is officially supported on macOS or Ubuntu (tested on 22.04 & 24.04). To use it on Windows, please install [WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
-* GDAL needs to be installed.
-* The 'ogr2ogr' command needs to work in your terminal.
-`sudo apt install gdal-bin` will install gdal and ogr2ogr on ubuntu / wsl
 
 ## Installation and Running
 
 ```bash
-# optional but encouraged: create a virtual environment
+# optional but highly encouraged: create a virtual environment
 python3 -m venv env
 source env/bin/activate
 # installing and running the tool
-pip install ngiab_data_preprocess[plot] # [plot] needed to install the evaluation and plotting module
+pip install 'ngiab_data_preprocess[plot]' # [plot] needed to install the evaluation and plotting module
 python -m map_app
 # CLI instructions at the bottom of the README
 ```
