@@ -54,8 +54,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-eval = ["ngiab_eval"]
-plot = ["ngiab_eval[plot]"]
+eval = ["ngiab_eval==0.0.13"]
+plot = ["ngiab_eval[plot]==0.0.13"]
 
 [project.urls]
 Homepage = "https://github.com/CIROH-UA/NGIAB_data_preprocess"
