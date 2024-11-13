@@ -4,76 +4,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <title>Map Application</title>
     <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <!-- <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" /> -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/legend.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/map.css') }}">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://unpkg.com/maplibre-gl@^4.7.1/dist/maplibre-gl.js"></script>
+    <script src="https://unpkg.com/pmtiles@3.0.6/dist/pmtiles.js"></script>
+    <link href="https://unpkg.com/maplibre-gl@^4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
 </head>
 
 <body>
     <header>
-        <h1>Interactive Map</h1>
+        <h1>Select catchments by clicking!</h1>        
     </header>
 
     <main>
         <section id="map-container">
-            <div id="map"></div>
-        </section>
-
-        <aside id="settings">
-            <!-- Place settings-related elements here -->
-        </aside>
-
-
-        <section id="selection-container">
-            <div class="input-group">
-                <h2>Select by cat_id</h2>
-                <div class="input-row">
-                    <input type="text" id="cat_id_input" placeholder="Enter cat_id">
-                    <button id="select-button">Select by id</button>
+            <div id="map"></div>            
+            <div class="command-container">
+                <div class="command-header">
+                    <span>Command - copy up to and include the operation you want to perform</span>
+                    <button id="copy-to-clip" class="copy-button" aria-label="Copy to clipboard">
+                        <svg class="copy-icon" viewBox="0 0 16 16" width="16" height="16">
+                            <path fill-rule="evenodd" d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z"></path>
+                            <path fill-rule="evenodd" d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z"></path>
+                        </svg>
+                        <span class="copy-text">Copy</span>
+                    </button>
                 </div>
+                <div id="cli-command" class="command-content"></div>
             </div>
-            <div class="input-group">
-                <h2>Select by gage id</h2>
-                <div class="input-row">
-                    <input type="text" id="gage_id_input" placeholder="Enter gage id">
-                    <button id="select-gage-button">Select by gage</button>
-                </div>
-            </div>
-            <div class="input-group">
-                <h2>Select by Lat Lon</h2>
-                <div class="input-row">
-                    <div>
-                        <div class="lat-lon-input">
-                            <label for="lat">Latitude: </label>
-                            <input type="number" id="lat_input" name="lat" step="0.0001" value="0">
-                        </div>
-                        <div class="lat-lon-input">
-                            <label for="lon">Longitude:</label>
-                            <input type="number" id="lon_input" name="lon" step="0.0001" value="0">
-                        </div>
-                    </div>
-                    <button id="select-lat-lon-button">Select by Lat Lon</button>
-                </div>
-            </div>
-            <button id="clear-button">Clear Selection</button>
-        </section>
-
+            <script>
+                document.getElementById('copy-to-clip').addEventListener('click', async function() {
+                    const commandText = document.getElementById('cli-command').textContent;
+                    const button = this;
+                    
+                    try {
+                        await navigator.clipboard.writeText(commandText);
+                        
+                        // Update button state
+                        button.classList.add('copied');
+                        const copyText = button.querySelector('.copy-text');
+                        const originalText = copyText.textContent;
+                        copyText.textContent = 'Copied!';
+                        
+                        // Reset button state after 2 seconds
+                        setTimeout(() => {
+                            button.classList.remove('copied');
+                            copyText.textContent = originalText;
+                        }, 2000);
+                    } catch (err) {
+                        console.error('Failed to copy text:', err);
+                    }
+                });
+            </script>
+            <h2>For selection by gage id please use the cli.</h2>
+        </section> 
         <section id="basins-container">
             <h2>Selected Basins</h2>
             <div id="selected-basins">None - get clicking!</div>
             <button id="subset-button">Create subset gpkg</button>
             <img class="loading" src="{{ url_for('static', filename='resources/loading.gif') }}" alt="Loading"
                 id="subset-loading">
-            <button id="subset-to-file-button">Output list of upstreams to file</button>
+            <!-- <button id="subset-to-file-button">Output list of upstreams to file</button>
             <img class="loading" src="{{ url_for('static', filename='resources/loading.gif') }}" alt="Loading"
-                id="subset-to-file-loading">
+                id="subset-to-file-loading"> -->
             <div id="output-info">
-                <strong>Output folder is configured in the ~/.NGIAB_data_preprocess file</strong>
+                <strong>Output folder is configured in the ~/.ngiab/preprocessor file</strong>
             </div>
             <div id="output-path"></div>
         </section>
@@ -91,13 +93,11 @@
 
         <section id="forcings">
             <div id="forcings-warning">
-                <strong>Forcing generation may take a while.</strong>
+                <strong>Forcing generation may take a while.<br> Use the Cli for progress bars and additional information</strong>
             </div>
             <button id="forcings-button">Create Forcing From Zarrs</button>
             <img class=" loading" src="{{ url_for('static', filename='resources/loading.gif') }}" alt="Loading"
                 id="forcings-loading">
-            <!-- <p>Creates a cached netcdf after fetching from S3.</p> -->
-
             <div id="forcings-output-path"></div>
         </section>
 
@@ -105,6 +105,8 @@
             <button id="realization-button">Create Realization</button>
             <div id="realization-output-path"></div>
         </section>
+
+
     </main>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/console.css') }}">
     <div id="console" class="minimized">
@@ -114,14 +116,9 @@
         <div id="logOutput"></div>
     </div>
     <script src="{{ url_for('static', filename='js/console.js') }}"></script>
-
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.6.2/proj4.js"></script>
     <script type="module" src="{{ url_for('static', filename='js/data_processing.js') }}"></script>
     <script src="{{ url_for('static', filename='js/main.js' ) }}"></script>
-    <script src="{{ url_for('static', filename='js/legend.js') }}"></script>
 
 </body>
 

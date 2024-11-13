@@ -10,7 +10,7 @@ from data_processing.file_paths import file_paths
 from data_processing.gpkg_utils import get_catid_from_point, get_cat_from_gage_id
 from data_processing.subset import subset
 from data_processing.forcings import create_forcings
-from data_processing.create_realization import create_realization
+from data_processing.create_realization import create_realization, create_dd_realization
 from data_sources.source_validation import validate_all
 
 from ngiab_data_cli.custom_logging import setup_logging, set_logging_to_critical_only
@@ -119,7 +119,6 @@ def main() -> None:
         cat_to_subset, output_folder = validate_input(args)
         paths = file_paths(output_folder)
         args = set_dependent_flags(args, paths)  # --validate
-
         logging.info(f"Using output folder: {paths.subset_dir}")
 
         if args.subset:
@@ -138,13 +137,20 @@ def main() -> None:
 
         if args.realization:
             logging.info(f"Creating realization from {args.start_date} to {args.end_date}...")
-            create_realization(output_folder, start_time=args.start_date, end_time=args.end_date)
+            if args.dd:
+                create_dd_realization(
+                    output_folder, start_time=args.start_date, end_time=args.end_date
+                )
+            else:
+                create_realization(
+                    output_folder, start_time=args.start_date, end_time=args.end_date
+                )
             logging.info("Realization creation complete.")
 
         # check if the dask client is still running and close it
         try:
-            client = Client().current()
-            client.close()
+            client = Client.current()
+            client.shutdown()
         except ValueError:
             # value error is raised if no client is running
             pass
@@ -156,12 +162,12 @@ def main() -> None:
                 num_partitions = int(f.read())
 
             try:
-                s = subprocess.check_output("docker ps", shell=True)
+                subprocess.run("docker pull joshcu/ngen", shell=True)
             except:
                 logging.error("Docker is not running, please start Docker and try again.")
             try:
-                # command = f'docker run --rm -it -v "{str(paths.subset_dir)}:/ngen/ngen/data" prod_test /ngen/ngen/data/ auto {num_partitions}'
-                command = f'docker run --rm -it -v "{str(paths.subset_dir)}:/ngen/ngen/data" awiciroh/ciroh-ngen-image:latest-x86 /ngen/ngen/data/ auto {num_partitions}'
+                command = f'docker run --rm -it -v "{str(paths.subset_dir)}:/ngen/ngen/data" joshcu/ngen /ngen/ngen/data/ auto {num_partitions}'
+                # command = f'docker run --rm -it -v "{str(paths.subset_dir)}:/ngen/ngen/data" awiciroh/ciroh-ngen-image:latest-x86 /ngen/ngen/data/ auto {num_partitions}'
                 subprocess.run(command, shell=True)
                 logging.info("Next Gen run complete.")
             except:
@@ -174,9 +180,8 @@ def main() -> None:
 
                 plot = True
             except ImportError:
-                logging.info(
-                    "install ngiab_data_preprocess[plot] or ngiab_eval[plot] to enable plotting"
-                )
+                # silently fail as plotting isn't publicly supported
+                pass
 
             try:
                 from ngiab_eval import evaluate_folder
@@ -192,11 +197,10 @@ def main() -> None:
 
         if args.vis:
             try:
-                command = f'docker run --rm -it -p 3000:3000 -v "{str(paths.subset_dir)}:/ngen/ngen/data/" joshcu/ngiab_grafana:0.1.0'
+                command = f'docker run --rm -it -p 3000:3000 -v "{str(paths.subset_dir)}:/ngen/ngen/data/" joshcu/ngiab_grafana:v0.2.0'
                 subprocess.run(command, shell=True)
-                logging.info("Next Gen run complete.")
             except:
-                logging.error("Next Gen run failed.")
+                logging.error("Failed to launch docker container.")
 
         logging.info("All operations completed successfully.")
         logging.info(f"Output folder: file:///{paths.subset_dir}")

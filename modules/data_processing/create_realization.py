@@ -1,16 +1,18 @@
+import json
+import multiprocessing
+import sqlite3
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from collections import defaultdict
-from statistics import mean
-import multiprocessing
+
 import pandas
-import json
 import s3fs
 import xarray as xr
-from tqdm.rich import tqdm
 from dask.distributed import Client, LocalCluster
 from data_processing.file_paths import file_paths
-from data_processing.gpkg_utils import get_cat_to_nex_flowpairs, get_cat_to_nhd_feature_id
+from data_processing.gpkg_utils import (GeoPackage, get_cat_to_nex_flowpairs,
+                                        get_cat_to_nhd_feature_id)
+from tqdm.rich import tqdm
 
 
 def get_approximate_gw_storage(paths: file_paths, start_date: datetime):
@@ -29,7 +31,6 @@ def get_approximate_gw_storage(paths: file_paths, start_date: datetime):
     except ValueError:
         cluster = LocalCluster()
         client = Client(cluster)
-
 
     with fs.open(nc_url) as file_obj:
         ds = xr.open_dataset(file_obj)
@@ -54,19 +55,19 @@ def make_cfe_config(
     cat_config_dir.mkdir(parents=True, exist_ok=True)
 
     for _, row in divide_conf_df.iterrows():
-        gw_storage_ratio = water_levels[row["divide_id"]] / row["gw_Zmax"]
+        gw_storage_ratio = water_levels[row["divide_id"]] / row["mean.Zmax"]
         cat_config = cfe_template.format(
-            bexp=row["bexp_soil_layers_stag=2"],
-            dksat=row["dksat_soil_layers_stag=2"],
-            psisat=row["psisat_soil_layers_stag=2"],
-            slope=row["slope"],
-            smcmax=row["smcmax_soil_layers_stag=2"],
-            smcwlt=row["smcwlt_soil_layers_stag=2"],
-            max_gw_storage=row["gw_Zmax"] if row["gw_Zmax"] is not None else "0.011[m]",
-            gw_Coeff=row["gw_Coeff"] if row["gw_Coeff"] is not None else "0.0018[m h-1]",
-            gw_Expon=row["gw_Expon"],
+            bexp=row["mode.bexp_soil_layers_stag=2"],
+            dksat=row["geom_mean.dksat_soil_layers_stag=2"],
+            psisat=row["geom_mean.psisat_soil_layers_stag=2"],
+            slope=row["mean.slope"],
+            smcmax=row["mean.smcmax_soil_layers_stag=2"],
+            smcwlt=row["mean.smcwlt_soil_layers_stag=2"],
+            max_gw_storage=row["mean.Zmax"] if row["mean.Zmax"] is not None else "0.011[m]",
+            gw_Coeff=row["mean.Coeff"] if row["mean.Coeff"] is not None else "0.0018[m h-1]",
+            gw_Expon=row["mode.Expon"],
             gw_storage="{:.5}".format(gw_storage_ratio),
-            refkdt=row["refkdt"],
+            refkdt=row["mean.refkdt"],
         )
         cat_ini_file = cat_config_dir / f"{row['divide_id']}.ini"
         with open(cat_ini_file, "w") as f:
@@ -92,12 +93,63 @@ def make_noahowp_config(
                 template.format(
                     start_datetime=start_datetime,
                     end_datetime=end_datetime,
-                    lat=divide_conf_df.loc[divide, "Y"],
-                    lon=divide_conf_df.loc[divide, "X"],
-                    terrain_slope=divide_conf_df.loc[divide, "slope_mean"],
-                    azimuth=divide_conf_df.loc[divide, "aspect_c_mean"],
-                    ISLTYP=divide_conf_df.loc[divide, "ISLTYP"],
-                    IVGTYP=divide_conf_df.loc[divide, "IVGTYP"],
+                    lat=divide_conf_df.loc[divide, "centroid_y"],
+                    lon=divide_conf_df.loc[divide, "centroid_x"],
+                    terrain_slope=divide_conf_df.loc[divide, "mean.slope"],
+                    azimuth=divide_conf_df.loc[divide, "circ_mean.aspect"],
+                    ISLTYP=int(divide_conf_df.loc[divide, "mode.ISLTYP"]),
+                    IVGTYP=int(divide_conf_df.loc[divide, "mode.IVGTYP"]),
+                )
+            )
+
+
+def make_dd_config(
+    hydrofabric: Path,
+    output_dir: Path,
+    template_path: Path = file_paths.template_dd_config,
+):
+    # This incantation took a while
+    with GeoPackage(hydrofabric) as conn:
+        sql = """WITH source_crs AS (
+        SELECT organization || ':' || organization_coordsys_id AS crs_string
+        FROM gpkg_spatial_ref_sys 
+        WHERE srs_id = (
+            SELECT srs_id 
+            FROM gpkg_geometry_columns 
+            WHERE table_name = 'divides'
+        )
+        )
+        SELECT 
+        d.divide_id, 
+        d.areasqkm, 
+        da."mean.slope", 
+        da."mean.elevation",
+        ST_X(Transform(MakePoint(da.centroid_x, da.centroid_y), 4326, NULL, 
+            (SELECT crs_string FROM source_crs), 'EPSG:4326')) AS longitude,
+        ST_Y(Transform(MakePoint(da.centroid_x, da.centroid_y), 4326, NULL, 
+            (SELECT crs_string FROM source_crs), 'EPSG:4326')) AS latitude
+        FROM divides AS d 
+        JOIN 'divide-attributes' AS da ON d.divide_id = da.divide_id 
+        """
+        divide_conf_df = pandas.read_sql_query(sql, conn)
+    divide_conf_df.set_index("divide_id", inplace=True)
+
+    cat_config_dir = output_dir / "cat_config" / "dd"
+    cat_config_dir.mkdir(parents=True, exist_ok=True)
+
+    with open(template_path, "r") as file:
+        template = file.read()
+
+    for divide in divide_conf_df.index:
+        with open(cat_config_dir / f"{divide}.yml", "w") as file:
+            file.write(
+                template.format(
+                    area_sqkm=divide_conf_df.loc[divide, "areasqkm"],
+                    divide_id=divide,
+                    lat=divide_conf_df.loc[divide, "latitude"],
+                    lon=divide_conf_df.loc[divide, "longitude"],
+                    slope_mean=divide_conf_df.loc[divide, "mean.slope"],
+                    elevation_mean=divide_conf_df.loc[divide, "mean.slope"],
                 )
             )
 
@@ -131,9 +183,9 @@ def configure_troute(
 
 
 def make_ngen_realization_json(
-    config_dir: Path, start_time: datetime, end_time: datetime, nts: int
+    config_dir: Path, template_path: Path, start_time: datetime, end_time: datetime, nts: int
 ) -> None:
-    with open(file_paths.template_realization_config, "r") as file:
+    with open(template_path, "r") as file:
         realization = json.load(file)
 
     realization["time"]["start_time"] = start_time.strftime("%Y-%m-%d %H:%M:%S")
@@ -144,22 +196,43 @@ def make_ngen_realization_json(
         json.dump(realization, file, indent=4)
 
 
+def create_dd_realization(cat_id: str, start_time: datetime, end_time: datetime):
+    paths = file_paths(cat_id)
+    template_path = file_paths.template_dd_realization_config
+    dd_config = file_paths.template_dd_model_config
+    # move dd_config to paths.config_dir
+    with open(dd_config, "r") as f:
+        dd_config = f.read()
+    with open(paths.config_dir / "dd-config.yml", "w") as f:
+        f.write(dd_config)
+
+    num_timesteps = configure_troute(cat_id, paths.config_dir, start_time, end_time)
+    make_ngen_realization_json(
+        paths.config_dir, template_path, start_time, end_time, num_timesteps
+    )
+    make_dd_config(paths.geopackage_path, paths.config_dir)
+    # create some partitions for parallelization
+    paths.setup_run_folders()
+    create_partitions(paths)
+
+
 def create_realization(cat_id: str, start_time: datetime, end_time: datetime):
-    # quick wrapper to get the cfe realization working
-    # without having to refactor this whole thing
     paths = file_paths(cat_id)
 
     # get approximate groundwater levels from nwm output
+    template_path = paths.template_cfe_nowpm_realization_config
+    with sqlite3.connect(paths.geopackage_path) as conn:
+        conf_df = pandas.read_sql_query("SELECT * FROM 'divide-attributes';", conn)
     gw_levels = get_approximate_gw_storage(paths, start_time)
-
-    conf_df = pandas.read_csv(paths.config_dir / "cfe_noahowp_attributes.csv")
     make_cfe_config(conf_df, paths, gw_levels)
 
     make_noahowp_config(paths.config_dir, conf_df, start_time, end_time)
 
     num_timesteps = configure_troute(cat_id, paths.config_dir, start_time, end_time)
 
-    make_ngen_realization_json(paths.config_dir, start_time, end_time, num_timesteps)
+    make_ngen_realization_json(
+        paths.config_dir, template_path, start_time, end_time, num_timesteps
+    )
 
     # create some partitions for parallelization
     paths.setup_run_folders()

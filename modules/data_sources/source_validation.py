@@ -1,11 +1,12 @@
-import tarfile
 import gzip
-from tqdm.rich import tqdm
-from tqdm import TqdmExperimentalWarning
 import os
+import tarfile
+import warnings
+
 import requests
 from data_processing.file_paths import file_paths
-import warnings
+from tqdm import TqdmExperimentalWarning
+from tqdm.rich import tqdm
 
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 
@@ -45,10 +46,7 @@ def download_file(url, save_path):
             f.write(data)
 
 
-hydrofabric_url = "https://lynker-spatial.s3-us-west-2.amazonaws.com/hydrofabric/v20.1/conus.gpkg"
-model_attributes_url = (
-    "https://lynker-spatial.s3-us-west-2.amazonaws.com/hydrofabric/v20.1/model_attributes.parquet"
-)
+hydrofabric_url = "https://communityhydrofabric.s3.us-east-1.amazonaws.com/conus_nextgen.gpkg"
 
 
 def validate_hydrofabric():
@@ -58,18 +56,6 @@ def validate_hydrofabric():
         response = input()
         if response == "" or response.lower() == "y":
             download_file(hydrofabric_url, file_paths.conus_hydrofabric)
-        else:
-            print("Exiting...")
-            exit()
-
-
-def validate_model_attributes():
-    if not file_paths.model_attributes.is_file():
-        # alert the user that the model attributes are missing
-        print("Model attributes are missing. Would you like to download them now? (Y/n)")
-        response = input()
-        if response == "" or response.lower() == "y":
-            download_file(model_attributes_url, file_paths.model_attributes)
         else:
             print("Exiting...")
             exit()
@@ -91,5 +77,4 @@ def validate_output_dir():
 
 def validate_all():
     validate_hydrofabric()
-    validate_model_attributes()
     validate_output_dir()
