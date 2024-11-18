@@ -46,6 +46,13 @@ For automatic interactive visualisation, please run [NGIAB](https://github.com/C
 ## Installation and Running
 
 ```bash
+# If you're installing this on jupyterhub / 2i2c you HAVE TO DEACTIVATE THE CONDA ENV
+(notebook) jovyan@jupyter-user:~$ conda deactivate
+jovyan@jupyter-user:~$
+# The interactive map won't work on 2i2c
+```    
+
+```bash
 # This tool is likely to not work without a virtual environment
 python3 -m venv .venv
 source .venv/bin/activate
