@@ -17,7 +17,7 @@ dynamic = ["version"]
 authors = [{ name = "Josh Cunningham", email = "jcunningham8@ua.edu" }]
 description = "Graphical Tools for creating Next Gen Water model input data."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.13"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -40,7 +40,7 @@ dependencies = [
     "black==24.3.0",
     "isort==5.13.2",
     "h5netcdf==1.3.0",
-    "exactextract==0.2.0.dev0",
+    "exactextract==0.2.0",
     "numpy==1.26.4",
     "tqdm==4.66.4",
     "rich==13.7.1",
