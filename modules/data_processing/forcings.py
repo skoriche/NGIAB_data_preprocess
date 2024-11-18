@@ -219,7 +219,8 @@ def write_outputs(forcings_dir, variables):
     # add the catchment ids as a 1d data var
     final_ds["ids"] = final_ds["catchment"].astype(str)
     # time needs to be a 2d array of the same time array as unix timestamps for every catchment
-    with warnings.catch_warnings(action="ignore"):
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
         time_array = (
             final_ds.time.astype("datetime64[s]").astype(np.int64).values // 10**9
         )  ## convert from ns to s
