@@ -376,9 +376,6 @@ def get_cat_from_gage_id(gage_id: str, gpkg: Path = file_paths.conus_hydrofabric
 
     logger.info(f"Getting catid for {gage_id}, in {gpkg}")
 
-    # the hydrolocations table seems to have a bunch of errors in it
-    # use flowpath_attributes instead
-    # both have errors, cross reference them
     with sqlite3.connect(gpkg) as con:
         sql_query = f"SELECT id FROM 'flowpath-attributes' WHERE gage = '{gage_id}'"
         result = con.execute(sql_query).fetchall()
