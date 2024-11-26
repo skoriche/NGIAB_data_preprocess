@@ -39,8 +39,6 @@ def decompress_gzip_tar(file_path, output_dir):
     progress.update(task, completed=1)
     progress.stop()
 
-                    
-
 
 def download_chunk(url, start, end, index, save_path):
     headers = {"Range": f"bytes={start}-{end}"}
@@ -65,7 +63,6 @@ def download_progress_estimate(progress, task, total_size):
         if total_downloaded >= total_size or progress.finished:
             break
     progress.stop()
-
 
 
 def download_file(url, save_path, num_threads=150):
@@ -159,7 +156,6 @@ def validate_hydrofabric():
         response = Prompt.ask(
             "Hydrofabric version information unavailable, Would you like to fetch the updated version?",
             default="y",
-            style="bold yellow",
             choices=["y", "n"],
         )
         if response == "y":
