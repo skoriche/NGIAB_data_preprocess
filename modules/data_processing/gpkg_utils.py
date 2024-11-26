@@ -32,7 +32,7 @@ def verify_indices(gpkg: str = file_paths.conus_hydrofabric) -> None:
     Verify that the indices in the specified geopackage are correct.
     If they are not, create the correct indices.
     """
-    logger.info("Building database indices")
+    logger.debug("Building database indices")
     new_indicies = [
         'CREATE INDEX "diid" ON "divides" ( "divide_id" ASC );',
         'CREATE INDEX "ditid" ON "divides" ( "toid" ASC );',
@@ -55,6 +55,9 @@ def verify_indices(gpkg: str = file_paths.conus_hydrofabric) -> None:
     con = sqlite3.connect(gpkg)
     indices = con.execute("SELECT name FROM sqlite_master WHERE type = 'index'").fetchall()
     indices = [x[0] for x in indices]
+    missing = [x for x in new_indicies if x.split('"')[1] not in indices]
+    if len(missing) > 0:
+        logger.info("Creating indices")
     for index in new_indicies:
         if index.split('"')[1] not in indices:
             logger.info(f"Creating index {index}")
@@ -299,7 +302,7 @@ def subset_table(table: str, ids: List[str], hydrofabric: str, subset_gpkg_name:
         subset_gpkg_name (str): The name of the subset geopackage.
     """
     logger.info(f"Subsetting {table} in {subset_gpkg_name}")
-    source_db = sqlite3.connect(hydrofabric)
+    source_db = sqlite3.connect(f"file:{hydrofabric}?mode=ro", uri=True)
     dest_db = sqlite3.connect(subset_gpkg_name)
 
     table_keys = {"divides": "toid", "divide-attributes": "divide_id", "lakes": "poi_id"}
