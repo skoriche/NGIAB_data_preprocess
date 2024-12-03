@@ -44,15 +44,18 @@ def download_chunk(url, start, end, index, save_path):
     headers = {"Range": f"bytes={start}-{end}"}
     response = requests.get(url, headers=headers, stream=True)
     chunk_path = f"{save_path}.part{index}"
+    # store the response in memory rather than streaming to disk
+    # OSX has a limit of 256 open files so this is a workaround
+    response_bytes = bytes()
+    for chunk in response.iter_content(chunk_size=8 * 1024):
+        response_bytes += chunk
     with open(chunk_path, "wb") as f_out:
-        for chunk in response.iter_content(chunk_size=8192):
-            if chunk:
-                f_out.write(chunk)
+        f_out.write(response_bytes)
     return chunk_path
 
 def download_progress_estimate(progress, task, total_size):
     network_bytes_start = psutil.net_io_counters().bytes_recv
-    # make a new progress bar that will be updated by a separate thread    
+    # make a new progress bar that will be updated by a separate thread
     progress.start()
     interval = 0.5
     while not progress.finished:
@@ -98,8 +101,7 @@ def download_file(url, save_path, num_threads=150):
         chunk_paths = [
             future.result() for future in futures
         ]
-    
-        
+
     with open(save_path, "wb") as f_out:
         for chunk_path in chunk_paths:
             with open(chunk_path, "rb") as f_in:
