@@ -17,7 +17,7 @@ with rich.status.Status("Initializing...") as status:
     from data_processing.graph_utils import get_upstream_cats
     from data_processing.subset import subset, subset_vpu
     from data_processing.forcings import create_forcings
-    from data_processing.create_realization import create_realization, create_dd_realization
+    from data_processing.create_realization import create_realization, create_em_realization
 
 
 def validate_input(args: argparse.Namespace) -> None:
@@ -144,27 +144,35 @@ def main() -> None:
                 logging.info("Subsetting complete.")
             else:
                 logging.info(f"Subsetting hydrofabric")
-                subset(feature_to_subset, output_folder_name=paths.subset_dir)
+                subset(feature_to_subset, output_gpkg_path=paths.geopackage_path)
                 logging.info("Subsetting complete.")
 
         if args.forcings:
             logging.info(f"Generating forcings from {args.start_date} to {args.end_date}...")
-            create_forcings(
-                start_time=args.start_date,
-                end_time=args.end_date,
-                output_folder_name=output_folder,
-            )
+            if args.empirical_model:
+                create_forcings(
+                    start_time=args.start_date,
+                    end_time=args.end_date,
+                    output_folder_name=output_folder,
+                    forcing_vars = ["t2d", "precip"]
+                )
+            else:
+                create_forcings(
+                    start_time=args.start_date,
+                    end_time=args.end_date,
+                    output_folder_name=output_folder,
+                )
             logging.info("Forcings generation complete.")
 
         if args.realization:
             logging.info(f"Creating realization from {args.start_date} to {args.end_date}...")
-            if args.dd:
-                create_dd_realization(
+            if args.empirical_model:
+                create_em_realization(
                     output_folder, start_time=args.start_date, end_time=args.end_date
                 )
             else:
                 create_realization(
-                    output_folder, start_time=args.start_date, end_time=args.end_date
+                    output_folder, start_time=args.start_date, end_time=args.end_date, use_nwm_gw=args.nwm_gw
                 )
             logging.info("Realization creation complete.")
 
