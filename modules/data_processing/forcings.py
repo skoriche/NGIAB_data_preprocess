@@ -10,6 +10,8 @@ from math import ceil
 from multiprocessing import shared_memory
 from pathlib import Path
 
+from dask.distributed import Client, LocalCluster
+
 import geopandas as gpd
 import numpy as np
 import pandas as pd
@@ -68,10 +70,12 @@ def get_cell_weights(raster, gdf, wkt):
 
 
 def add_APCP_SURFACE_to_dataset(dataset: xr.Dataset) -> xr.Dataset:
-    # precip rate is mm/s
-    # cfe says input m/h
-    dataset["APCP_surface"] = dataset["precip_rate"] * 3600 / 1000
-    # technically should be kg/m^2/h, at 1kg = 1l it equates to mm/h
+    # precip_rate is mm/s
+    # cfe says input atmosphere_water__liquid_equivalent_precipitation_rate is mm/h
+    # nom says prcpnonc input is mm/s
+    # technically should be kg/m^2/s at 1kg = 1l it equates to mm/s
+    # nom says qinsur output is m/s, hopefully qinsur is converted to mm/h by ngen
+    dataset["APCP_surface"] = dataset["precip_rate"] * 3600
     return dataset
 
 
@@ -79,7 +83,9 @@ def get_index_chunks(data: xr.DataArray) -> list[tuple[int, int]]:
     # takes a data array and calculates the start and end index for each chunk
     # based on the available memory.
     array_memory_usage = data.nbytes
-    free_memory = psutil.virtual_memory().available * 0.8 # 80% of available memory
+    # free_memory = psutil.virtual_memory().available * 0.8 # 80% of available memory
+    # limit the chunk to 20gb, makes things more stable
+    free_memory = min(free_memory, 20 * 1024 * 1024 * 1024)
     num_chunks = ceil(array_memory_usage / free_memory)
     max_index = data.shape[0]
     stride = max_index // num_chunks
@@ -233,8 +239,15 @@ def compute_zonal_stats(
 
 def write_outputs(forcings_dir, variables):
 
-    # Combine all variables into a single dataset
-    results = [xr.open_dataset(file) for file in forcings_dir.glob("*.nc")]
+    # start a dask cluster if there isn't one already running
+    try:
+        client = Client.current()
+    except ValueError:
+        cluster = LocalCluster()
+        client = Client(cluster)
+
+    # Combine all variables into a single dataset using dask
+    results = [xr.open_dataset(file, chunks="auto") for file in forcings_dir.glob("*.nc")]
     final_ds = xr.merge(results)
 
     output_folder = forcings_dir / "by_catchment"

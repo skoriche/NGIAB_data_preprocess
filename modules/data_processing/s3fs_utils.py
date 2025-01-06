@@ -36,7 +36,7 @@ class S3ParallelFileSystem(S3FileSystem):
             # Fall back to single request if HEAD fails
             return await self._download_chunk(bucket, key, {}, version_kw)
 
-        CHUNK_SIZE = 1 * 1024 * 1024  # 1MB chunks
+        CHUNK_SIZE = 5 * 1024 * 1024  # 1MB chunks
         if obj_size <= CHUNK_SIZE:
             return await self._download_chunk(bucket, key, {}, version_kw)
 
