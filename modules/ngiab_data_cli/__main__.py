@@ -128,7 +128,7 @@ def main() -> None:
         paths = file_paths(output_folder)
         args = set_dependent_flags(args, paths)  # --validate
         if feature_to_subset:
-            logging.info(f"Subsetting {feature_to_subset} to {paths.output_dir}")
+            logging.info(f"Processing {feature_to_subset} in {paths.output_dir}")
             if not args.vpu:
                 upstream_count = len(get_upstream_cats(feature_to_subset))
                 logging.info(f"Upstream catchments: {upstream_count}")
