@@ -77,7 +77,7 @@ def make_cfe_config(
             slope=row["mean.slope"],
             smcmax=row["mean.smcmax_soil_layers_stag=2"],
             smcwlt=row["mean.smcwlt_soil_layers_stag=2"],
-            max_gw_storage=row["mean.Zmax"] if row["mean.Zmax"] is not None else "0.011[m]",
+            max_gw_storage=row["mean.Zmax"]/1000 if row["mean.Zmax"] is not None else "0.011[m]", # mean.Zmax is in mm!
             gw_Coeff=row["mean.Coeff"] if row["mean.Coeff"] is not None else "0.0018[m h-1]",
             gw_Expon=row["mode.Expon"],
             gw_storage="{:.5}".format(gw_storage_ratio),
