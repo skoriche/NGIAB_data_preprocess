@@ -5,36 +5,8 @@ import webbrowser
 from threading import Timer
 
 from data_processing.file_paths import file_paths
-from data_sources.source_validation import validate_all
 from data_processing.graph_utils import get_graph
-from flask import Flask
-
-from .views import intra_module_db, main
-
-validate_all()
-
-with open("app.log", "w") as f:
-    f.write("")
-    f.write("Starting Application!\n")
-
-
-app = Flask(__name__)
-app.register_blueprint(main)
-
-intra_module_db["app"] = app
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(name)-12s: %(levelname)s - %(message)s",
-    filename="app.log",
-    filemode="a",
-)  # Append mode
-# Example: Adding a console handler to root logger (optional)
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.INFO)  # Or any other level
-formatter = logging.Formatter("%(name)-12s: %(levelname)-8s %(message)s")
-console_handler.setFormatter(formatter)
-logging.getLogger("").addHandler(console_handler)
+from map_app import app, console_handler
 
 
 def open_browser():
@@ -59,8 +31,7 @@ def set_logs_to_warning():
     console_handler.setLevel(logging.DEBUG)
 
 
-if __name__ == "__main__":
-
+def main():
     # call this once to cache the graph
     Timer(1, get_graph).start()
 
@@ -74,3 +45,6 @@ if __name__ == "__main__":
         with open("app.log", "a") as f:
             f.write("Running in production mode\n")
         app.run(host="0.0.0.0", port="0")
+
+if __name__ == "__main__":
+    main()

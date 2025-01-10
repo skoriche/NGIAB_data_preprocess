@@ -57,7 +57,7 @@ Issues = "https://github.com/CIROH-UA/NGIAB_data_preprocess/issues"
 
 [project.scripts]
 cli = "ngiab_data_cli.__main__:main"
-map = "map_app.__main__:main"
+map_app = "map_app.__main__:main"
 
 [build-system]
 # scm adds files tracked by git to the package
