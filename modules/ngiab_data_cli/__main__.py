@@ -1,5 +1,5 @@
 import rich.status
-
+import sys
 # add a status bar for these imports so the cli feels more responsive
 with rich.status.Status("Initializing...") as status:
     from data_sources.source_validation import validate_all
@@ -126,6 +126,7 @@ def main() -> None:
             logging.getLogger("data_processing").setLevel(logging.DEBUG)
         feature_to_subset, output_folder = validate_input(args)
         paths = file_paths(output_folder)
+        paths.append_cli_command(sys.argv)
         args = set_dependent_flags(args, paths)  # --validate
         if feature_to_subset:
             logging.info(f"Subsetting {feature_to_subset} to {paths.output_dir}")
