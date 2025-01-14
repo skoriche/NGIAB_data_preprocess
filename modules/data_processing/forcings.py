@@ -83,7 +83,7 @@ def get_index_chunks(data: xr.DataArray) -> list[tuple[int, int]]:
     # takes a data array and calculates the start and end index for each chunk
     # based on the available memory.
     array_memory_usage = data.nbytes
-    # free_memory = psutil.virtual_memory().available * 0.8 # 80% of available memory
+    free_memory = psutil.virtual_memory().available * 0.8 # 80% of available memory
     # limit the chunk to 20gb, makes things more stable
     free_memory = min(free_memory, 20 * 1024 * 1024 * 1024)
     num_chunks = ceil(array_memory_usage / free_memory)

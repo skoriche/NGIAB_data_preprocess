@@ -130,6 +130,9 @@ def parse_arguments() -> argparse.Namespace:
         "--vis", "--visualise", action="store_true", help="Visualize the model output"
     )
     parser.add_argument(
+        "--cal", "--calibration", action="store_true", help="Generate some default config files for running ngiab-cal"
+    )
+    parser.add_argument(
         "-a",
         "--all",
         action="store_true",

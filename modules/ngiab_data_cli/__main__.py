@@ -1,3 +1,4 @@
+from typing import Tuple
 import rich.status
 import sys
 # add a status bar for these imports so the cli feels more responsive
@@ -18,9 +19,10 @@ with rich.status.Status("Initializing...") as status:
     from data_processing.subset import subset, subset_vpu
     from data_processing.forcings import create_forcings
     from data_processing.create_realization import create_realization, create_em_realization
+    from ngiab_cal import create_calibration_config
 
 
-def validate_input(args: argparse.Namespace) -> None:
+def validate_input(args: argparse.Namespace) -> Tuple[str,str]:
     """Validate input arguments."""
 
     if args.vpu:
@@ -62,6 +64,9 @@ def validate_input(args: argparse.Namespace) -> None:
         output_folder = input_feature
     else:
         output_folder = feature_name
+
+    if args.cal and not args.gage:
+        raise ValueError("Calibration is only available for gage IDs.")
 
     return feature_name, output_folder
 
@@ -232,8 +237,16 @@ def main() -> None:
             except:
                 logging.error("Failed to launch docker container.")
 
+        if args.cal:
+            logging.info("Creating calibration config...")
+            create_calibration_config(paths.output_dir,  args.input_feature.replace("_", "-"))
+            logging.info("Calibration config created.")
+            logging.info(f"This is still experimental, run the following command to start calibration:")
+            logging.info(f'docker run -it -v "{paths.output_dir}:/ngen/ngen/data" -v "/etc/passwd:/etc/passwd" joshcu/ngiab-cal')
+
+
         logging.info("All operations completed successfully.")
-        logging.info(f"Output folder: file:///{paths.subset_dir}")
+        logging.info(f"Output folder: file:///{paths.output_dir}")
         # set logging to ERROR level only as dask distributed can clutter the terminal with INFO messages
         # that look like errors
         set_logging_to_critical_only()

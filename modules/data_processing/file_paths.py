@@ -30,6 +30,7 @@ class file_paths:
     template_cfe_config = data_sources / "cfe-template.ini"
     template_em_config = data_sources / "em-catchment-template.yml"
     template_em_model_config = data_sources / "em-config.yml"
+    template_calibration_config = data_sources / "ngen_cal_conf.yaml"
 
     def __init__(self, folder_name: str = None, output_dir: Path = None):
         """
@@ -90,6 +91,10 @@ class file_paths:
     @property
     def metadata_dir(self) -> Path:
         return self.subset_dir / "metadata"
+
+    @property
+    def calibration_dir(self) -> Path:
+        return self.subset_dir / "calibration"
 
     @property
     def geopackage_path(self) -> Path:
