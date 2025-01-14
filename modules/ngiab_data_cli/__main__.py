@@ -119,7 +119,7 @@ def validate_run_directory(args, paths: file_paths):
 
 def main() -> None:
     setup_logging()
-
+    validate_all()
     try:
         args = parse_arguments()
         if args.debug:
@@ -243,5 +243,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    validate_all()
     main()
