@@ -1,3 +1,4 @@
+time_step: '1 hour'
 area_sqkm: {area_sqkm} # areasqkm
 basin_id: {divide_id}
 basin_name: {divide_id}
