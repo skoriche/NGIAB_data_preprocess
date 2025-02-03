@@ -97,7 +97,7 @@ class file_paths:
 
     @property
     def cached_nc_file(self) -> Path:
-        return self.subset_dir / "merged_data.nc"
+        return self.forcings_dir / "raw_gridded_data.nc"
 
     def append_cli_command(self, command: list[str]) -> None:
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -110,8 +110,6 @@ class file_paths:
 
     def setup_run_folders(self) -> None:
         folders = [
-            "restart",
-            "lakeout",
             "outputs",
             "outputs/ngen",
             "outputs/troute",

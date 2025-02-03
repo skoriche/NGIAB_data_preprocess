@@ -76,6 +76,8 @@ def add_APCP_SURFACE_to_dataset(dataset: xr.Dataset) -> xr.Dataset:
     # technically should be kg/m^2/s at 1kg = 1l it equates to mm/s
     # nom says qinsur output is m/s, hopefully qinsur is converted to mm/h by ngen
     dataset["APCP_surface"] = dataset["precip_rate"] * 3600
+    dataset["APCP_surface"].attrs["units"] = "mm h^-1" # ^-1 notation copied from source data
+    dataset["APCP_surface"].attrs["source_note"] = "This is just the precip_rate variable converted to mm/h by multiplying by 3600"
     return dataset
 
 
@@ -140,6 +142,12 @@ def get_cell_weights_parallel(gdf, input_forcings, num_partitions):
         catchments = pool.starmap(get_cell_weights, args)
     return pd.concat(catchments)
 
+def get_units(dataset: xr.Dataset) -> dict:
+    units = {}
+    for var in dataset.data_vars:
+        if dataset[var].attrs["units"]:
+            units[var] = dataset[var].attrs["units"]
+    return units
 
 def compute_zonal_stats(
     gdf: gpd.GeoDataFrame, merged_data: xr.Dataset, forcings_dir: Path
@@ -151,6 +159,8 @@ def compute_zonal_stats(
         num_partitions = len(gdf)
 
     catchments = get_cell_weights_parallel(gdf, merged_data, num_partitions)
+
+    units = get_units(merged_data)
 
     variables = {
                 "LWDOWN": "DLWRF_surface",
@@ -224,12 +234,12 @@ def compute_zonal_stats(
         # Merge the chunks back together
         datasets = [xr.open_dataset(forcings_dir / "temp" / f"{variable}_{i}.nc") for i in range(len(time_chunks))]
         result = xr.concat(datasets, dim="time")
-        result.to_netcdf(forcings_dir / f"{variable}.nc")
+        result.to_netcdf(forcings_dir / "temp" / f"{variable}.nc")
         # close the datasets
         result.close()
         _ = [dataset.close() for dataset in datasets]
 
-        for file in forcings_dir.glob("temp/*.nc"):
+        for file in forcings_dir.glob("temp/*_*.nc"):
             file.unlink()
         progress.remove_task(chunk_task)
     progress.update(
@@ -240,10 +250,10 @@ def compute_zonal_stats(
     logger.info(
         f"Forcing generation complete! Zonal stats computed in {time.time() - timer_start:2f} seconds"
     )
-    write_outputs(forcings_dir, variables)
+    write_outputs(forcings_dir, variables, units)
 
 
-def write_outputs(forcings_dir, variables):
+def write_outputs(forcings_dir, variables, units):
 
     # start a dask cluster if there isn't one already running
     try:
@@ -251,12 +261,15 @@ def write_outputs(forcings_dir, variables):
     except ValueError:
         cluster = LocalCluster()
         client = Client(cluster)
-
+    temp_forcings_dir = forcings_dir / "temp"
     # Combine all variables into a single dataset using dask
-    results = [xr.open_dataset(file, chunks="auto") for file in forcings_dir.glob("*.nc")]
+    results = [xr.open_dataset(file, chunks="auto") for file in temp_forcings_dir.glob("*.nc")]
     final_ds = xr.merge(results)
-
-    output_folder = forcings_dir / "by_catchment"
+    for var in final_ds.data_vars:
+        if var in units:
+            final_ds[var].attrs["units"] = units[var]
+        else:
+            logger.warning(f"Variable {var} has no units")
 
     rename_dict = {}
     for key, value in variables.items():
@@ -294,19 +307,25 @@ def write_outputs(forcings_dir, variables):
     final_ds["Time"].attrs["units"] = "s"
     final_ds["Time"].attrs["epoch_start"] = "01/01/1970 00:00:00" # not needed but suppresses the ngen warning
 
-    final_ds.to_netcdf(output_folder / "forcings.nc", engine="netcdf4")
+    final_ds.to_netcdf(forcings_dir / "forcings.nc", engine="netcdf4")
     # close the datasets
     _ = [result.close() for result in results]
     final_ds.close()
 
+    # clean up the temp files
+    for file in temp_forcings_dir.glob("*.*"):
+        file.unlink()
+    temp_forcings_dir.rmdir()
+
 
 def setup_directories(cat_id: str) -> file_paths:
     forcing_paths = file_paths(cat_id)
-    if forcing_paths.forcings_dir.exists():
-        logger.info("Forcings directory already exists, deleting")
-        shutil.rmtree(forcing_paths.forcings_dir)
-    for folder in ["by_catchment", "temp"]:
-        os.makedirs(forcing_paths.forcings_dir / folder, exist_ok=True)
+    # delete everything in the forcing folder except the cached nc file
+    for file in forcing_paths.forcings_dir.glob("*.*"):
+        if file != forcing_paths.cached_nc_file:
+            file.unlink()
+
+    os.makedirs(forcing_paths.forcings_dir / "temp", exist_ok=True)
 
     return forcing_paths
 
