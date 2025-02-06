@@ -202,7 +202,7 @@ def get_model_attributes(hydrofabric: Path):
                 (SELECT crs_string FROM source_crs), 'EPSG:4326')) AS latitude FROM 'divide-attributes';""",
                 conn,
             )
-    except pandas.errors.DatabaseError:
+    except sqlite3.OperationalError:
         with sqlite3.connect(hydrofabric) as conn:
             conf_df = pandas.read_sql_query("SELECT* FROM 'divide-attributes';", conn,)
         source_crs = get_table_crs_short(hydrofabric, "divides")
