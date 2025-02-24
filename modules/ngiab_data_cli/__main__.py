@@ -19,7 +19,7 @@ with rich.status.Status("Initializing...") as status:
     from data_processing.subset import subset, subset_vpu
     from data_processing.forcings import create_forcings
     from data_processing.create_realization import create_realization, create_em_realization
-    from ngiab_cal import create_calibration_config
+    from ngiab_cal import create_calibration_config, generate_best_realization
 
 
 def validate_input(args: argparse.Namespace) -> Tuple[str,str]:
@@ -258,6 +258,16 @@ def main() -> None:
                     logging.info("Calibration complete.")
                 except:
                     logging.error("Calibration failed.")
+
+            calibration_worker_dir = paths.calibration_dir / "Output"
+            # if this folder exists then calibration has been run
+            # but not necessarily completed
+            if calibration_worker_dir.exists():
+                logging.info("Calibration has been run.")
+                logging.info(
+                    f"Generating best realization to {paths.output_dir / "config" / "best_realization.json" }..."
+                )
+                generate_best_realization(paths.calibration_dir)
 
         logging.info("All operations completed successfully.")
         logging.info(f"Output folder: file:///{paths.output_dir}")

@@ -5,6 +5,8 @@ import json
 import sqlite3
 import logging
 from hydrotools.nwis_client import IVDataService
+import yaml
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -161,3 +163,83 @@ def create_calibration_config(calibration_dir: Path, gage_id: str) -> None:
     )
     # create the dates for the ngen-cal config
     create_ngen_cal_config(paths.output_dir, gage_id, start, end)
+
+
+def generate_best_realization(calibration_dir: Path) -> None:
+    # this relies too much on the folder structure of this, ngiab, and ngen-cal
+    output_realization = calibration_dir / "../config/" / "best_realization.json"
+    source_realization = calibration_dir / "realization.json"
+
+    # read the calibration config to figure out what parameters belong to which model
+    calibration_config = calibration_dir / "ngen_cal_conf.yaml"
+    with open(calibration_config, "r") as f:
+        config = f.read()
+    config = yaml.safe_load(config)
+
+    # dictionary of model names to their parameters
+    models = config["model"]["params"]
+
+    parameters = {}
+
+    # the default config uses some kind of linked yaml object that won't load
+    for model_name in models:
+        model = config[model_name]
+        parameters[model_name] = []
+        for param in model:
+            parameters[model_name].append(param["name"])
+
+    # now we have dictionary of model names to their parameters
+    with open(source_realization, "r") as f:
+        realization = json.loads(f.read())
+
+    # now to get the best parameters
+    objective_metric = config["model"]["eval_params"]["objective"]
+
+    # get all the worker outputs
+    # glob calibration_dir/Output/*/ngen_*_worker/*_metrics_iteration.csv
+    # look for the column with the objective metric and find the row with the best value
+    # then open *_params_iteration.csv in the same folder to get the parameters
+    # then update the realization.json file with the new parameters
+    metric_files = calibration_dir.glob("Output/*/ngen_*_worker/*_metrics_iteration.csv")
+    current_best = None
+    for file in metric_files:
+        metric_df = pd.read_csv(file)
+        # check the headers to match the case of the objective metric
+        if objective_metric.lower() in metric_df.columns:
+            objective_metric = objective_metric.lower()
+        if objective_metric.upper() in metric_df.columns:
+            objective_metric = objective_metric.upper()
+        # register the best value on the first run
+        if current_best is None:
+            current_best = metric_df[objective_metric].max()
+
+        # if the current workers best worse than the current best, skip it
+        if metric_df[objective_metric].max() < current_best:
+            continue
+        best_row = metric_df[metric_df[objective_metric] == metric_df[objective_metric].max()]
+        best_iteration = best_row["iteration"]
+        worker_dir = file.parent
+        iteration_file = list(worker_dir.glob("*_params_iteration.csv"))[0]
+        params_df = pd.read_csv(iteration_file)
+        params_df = params_df.set_index("iteration")
+        best_params = pd.read_csv(iteration_file).iloc[best_iteration]
+
+    realization_modules = realization["global"]["formulations"][0]["params"]["modules"]
+
+    # loop over the models used in the realization
+    for module in realization_modules:
+        module_name = module["params"]["model_type_name"]
+        if module_name in parameters:
+            model_params = {}
+            for parameter_name in parameters[module_name]:
+                if parameter_name in best_params:
+                    model_params[parameter_name] = best_params[parameter_name][0]
+            module["params"]["model_params"] = model_params
+
+    with open(output_realization, "w") as f:
+        f.write(json.dumps(realization))
+
+
+if __name__ == "__main__":
+    calibration_dir = Path("/mnt/raid0/ngiab/cal_test/calibration")
+    generate_best_realization(calibration_dir)
