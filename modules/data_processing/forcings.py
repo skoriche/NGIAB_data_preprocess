@@ -28,6 +28,7 @@ from rich.progress import (
     TimeElapsedColumn,
     TimeRemainingColumn,
 )
+from typing import Tuple
 
 
 logger = logging.getLogger(__name__)
@@ -40,9 +41,32 @@ warnings.filterwarnings(
 )
 
 
-def weighted_sum_of_cells(flat_raster: np.ndarray, cell_ids: np.ndarray , factors: np.ndarray):
-    # Create an output array initialized with zeros
-    # dimensions are raster[time][x*y]
+def weighted_sum_of_cells(flat_raster: np.ndarray, 
+                          cell_ids: np.ndarray, 
+                          factors: np.ndarray) -> np.ndarray:
+    '''  
+    Take an average of each forcing variable in a catchment. Create an output
+    array initialized with zeros, and then sum up the forcing variable and 
+    divide by the sum of the cell weights to get an averaged forcing variable 
+    for the entire catchment.
+
+    Parameters
+    ----------
+    flat_raster : np.ndarray
+        An array of dimensions (time, x*y) containing forcing variable values
+        in each cell. Each element in the array corresponds to a cell ID.
+    cell_ids : np.ndarray
+        A list of the raster cell IDs that intersect the study catchment.
+    factors : np.ndarray
+        A list of the weights (coverages) of each cell in cell_ids.
+
+    Returns
+    -------
+    np.ndarray
+        An one-dimensional array, where each element corresponds to a timestep.
+        Each element contains the averaged forcing value for the whole catchment
+        over one timestep.
+    '''
     result = np.zeros(flat_raster.shape[0])
     result = np.sum(flat_raster[:, cell_ids] * factors, axis=1)
     sum_of_weights = np.sum(factors)
@@ -50,8 +74,30 @@ def weighted_sum_of_cells(flat_raster: np.ndarray, cell_ids: np.ndarray , factor
     return result
 
 
-def get_cell_weights(raster, gdf, wkt):
-    # Get the cell weights for each divide
+def get_cell_weights(raster: xr.Dataset, 
+                     gdf: gpd.GeoDataFrame, 
+                     wkt: str) -> pd.DataFrame:
+    '''
+    Get the cell weights (coverage) for each cell in a divide. Coverage is 
+    defined as the fraction (a float in [0,1]) of a raster cell that overlaps 
+    with the polygon in the passed gdf.
+
+    Parameters
+    ----------
+    raster : xr.Dataset
+        One timestep of a gridded forcings dataset.
+    gdf : gpd.GeoDataFrame
+        A GeoDataFrame with a polygon feature.
+    wkt : str
+        Well-known text (WKT) representation of gdf's coordinate reference
+        system (CRS)
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame indexed by divide_id that contains information about coverage
+        for each raster cell in gridded forcing file.
+    '''
     xmin = raster.x[0]
     xmax = raster.x[-1]
     ymin = raster.y[0]
@@ -70,18 +116,34 @@ def get_cell_weights(raster, gdf, wkt):
 
 
 def add_APCP_SURFACE_to_dataset(dataset: xr.Dataset) -> xr.Dataset:
+    '''Convert precipitation value to correct units.'''
     # precip_rate is mm/s
     # cfe says input atmosphere_water__liquid_equivalent_precipitation_rate is mm/h
     # nom says prcpnonc input is mm/s
     # technically should be kg/m^2/s at 1kg = 1l it equates to mm/s
     # nom says qinsur output is m/s, hopefully qinsur is converted to mm/h by ngen
     dataset["APCP_surface"] = dataset["precip_rate"] * 3600
+    dataset["APCP_surface"].attrs["units"] = "mm h^-1" # ^-1 notation copied from source data
+    dataset["APCP_surface"].attrs["source_note"] = "This is just the precip_rate variable converted to mm/h by multiplying by 3600"
     return dataset
 
 
 def get_index_chunks(data: xr.DataArray) -> list[tuple[int, int]]:
-    # takes a data array and calculates the start and end index for each chunk
-    # based on the available memory.
+    '''  
+    Take a DataArray and calculate the start and end index for each chunk based
+    on the available memory.
+
+    Parameters
+    ----------
+    data : xr.DataArray
+        Large DataArray that can't be loaded into memory all at once.
+
+    Returns
+    -------
+    list[Tuple[int, int]]
+        Each element in the list represents a chunk of data. The tuple within
+        the chunk indicates the start index and end index of the chunk.
+    '''
     array_memory_usage = data.nbytes
     free_memory = psutil.virtual_memory().available * 0.8 # 80% of available memory
     # limit the chunk to 20gb, makes things more stable
@@ -94,7 +156,31 @@ def get_index_chunks(data: xr.DataArray) -> list[tuple[int, int]]:
     return index_chunks
 
 
-def create_shared_memory(lazy_array):
+def create_shared_memory(lazy_array: xr.Dataset) -> Tuple[
+    shared_memory.SharedMemory,
+    np.dtype,
+    np.dtype
+]:
+    '''
+    Create a shared memory object so that multiple processes can access loaded 
+    data.
+    
+    Parameters
+    ----------
+    lazy_array : xr.Dataset
+        A chunk of gridded forcing variable data.
+
+    Returns
+    -------
+    shared_memory.SharedMemory
+        A specific block of memory allocated by the OS of the size of 
+        lazy_array.
+    np.dtype.shape
+        A shape object with dimensions (# timesteps, # of raster cells) in
+        reference to lazy_array.
+    np.dtype
+        Data type of objects in lazy_array.
+    '''
     logger.debug(f"Creating shared memory size {lazy_array.nbytes/ 10**6} Mb.")
     shm = shared_memory.SharedMemory(create=True, size=lazy_array.nbytes)
     shared_array = np.ndarray(lazy_array.shape, dtype=np.float32, buffer=shm.buf)
@@ -110,7 +196,36 @@ def create_shared_memory(lazy_array):
     return shm, shared_array.shape, shared_array.dtype
 
 
-def process_chunk_shared(variable, times, shm_name, shape, dtype, chunk):
+def process_chunk_shared(variable: str,
+                         times: np.ndarray,
+                         shm_name: str,
+                         shape: np.dtype.shape,
+                         dtype: np.dtype, 
+                         chunk: gpd.GeoDataFrame) -> xr.DataArray:
+    '''  
+    Process the gridded forcings chunk loaded into a SharedMemory block. 
+
+    Parameters
+    ----------
+    variable : str
+        Name of forcing variable to be processed.
+    times : np.ndarray
+        Timesteps in gridded forcings chunk.
+    shm_name : str
+        Unique name that identifies the SharedMemory block.
+    shape : np.dtype.shape
+        A shape object with dimensions (# timesteps, # of raster cells) in
+        reference to the gridded forcings chunk.
+    dtype : np.dtype
+        Data type of objects in the gridded forcings chunk.
+    chunk : gpd.GeoDataFrame
+        A chunk of gridded forcings data.
+
+    Returns
+    -------
+    xr.DataArray
+        Averaged forcings data for each timestep for each catchment.
+    '''
     existing_shm = shared_memory.SharedMemory(name=shm_name)
     raster = np.ndarray(shape, dtype=dtype, buffer=existing_shm.buf)
     results = []
@@ -131,7 +246,28 @@ def process_chunk_shared(variable, times, shm_name, shape, dtype, chunk):
     return xr.concat(results, dim="catchment")
 
 
-def get_cell_weights_parallel(gdf, input_forcings, num_partitions):
+def get_cell_weights_parallel(gdf: gpd.GeoDataFrame,
+                              input_forcings: xr.Dataset,
+                              num_partitions: int) -> pd.DataFrame:
+    '''
+    Execute get_cell_weights with multiprocessing, with chunking for the passed
+    GeoDataFrame to conserve memory usage.
+
+    Parameters
+    ----------
+    gdf : gpd.GeoDataFrame
+        A GeoDataFrame with a polygon feature.
+    input_forcings : xr.Dataset
+        A gridded forcings file.
+    num_partitions : int
+        Number of chunks to split gdf into.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame indexed by divide_id that contains information about coverage
+        for each raster cell and each timestep in gridded forcing file.
+    '''
     gdf_chunks = np.array_split(gdf, num_partitions)
     wkt = gdf.crs.to_wkt()
     one_timestep = input_forcings.isel(time=0).compute()
@@ -140,10 +276,43 @@ def get_cell_weights_parallel(gdf, input_forcings, num_partitions):
         catchments = pool.starmap(get_cell_weights, args)
     return pd.concat(catchments)
 
+def get_units(dataset: xr.Dataset) -> dict:
+    '''
+    Return dictionary of units for each variable in dataset.
+    
+    Parameters
+    ----------
+    dataset : xr.Dataset
+        Dataset with variables and units.
+    
+    Returns
+    -------
+    dict 
+        {variable name: unit}
+    '''
+    units = {}
+    for var in dataset.data_vars:
+        if dataset[var].attrs["units"]:
+            units[var] = dataset[var].attrs["units"]
+    return units
 
 def compute_zonal_stats(
     gdf: gpd.GeoDataFrame, merged_data: xr.Dataset, forcings_dir: Path
 ) -> None:
+    '''  
+    Compute zonal statistics in parallel for all timesteps over all desired 
+    catchments. Create chunks of catchments and within those, chunks of 
+    timesteps for memory management.
+
+    Parameters
+    ----------
+    gdf : gpd.GeoDataFrame
+        Contains identity and geometry information on desired catchments.
+    merged_data : xr.Dataset
+        Gridded forcing data that intersects with desired catchments.
+    forcings_dir : Path
+        Path to directory where outputs are to be stored.
+    '''
     logger.info("Computing zonal stats in parallel for all timesteps")
     timer_start = time.time()
     num_partitions = multiprocessing.cpu_count() - 1
@@ -151,6 +320,8 @@ def compute_zonal_stats(
         num_partitions = len(gdf)
 
     catchments = get_cell_weights_parallel(gdf, merged_data, num_partitions)
+
+    units = get_units(merged_data)
 
     variables = {
                 "LWDOWN": "DLWRF_surface",
@@ -223,8 +394,13 @@ def compute_zonal_stats(
             concatenated_da.to_dataset(name=variable).to_netcdf(forcings_dir/ "temp" / f"{variable}_{i}.nc")
         # Merge the chunks back together
         datasets = [xr.open_dataset(forcings_dir / "temp" / f"{variable}_{i}.nc") for i in range(len(time_chunks))]
-        xr.concat(datasets, dim="time").to_netcdf(forcings_dir / f"{variable}.nc")
-        for file in forcings_dir.glob("temp/*.nc"):
+        result = xr.concat(datasets, dim="time")
+        result.to_netcdf(forcings_dir / "temp" / f"{variable}.nc")
+        # close the datasets
+        result.close()
+        _ = [dataset.close() for dataset in datasets]
+
+        for file in forcings_dir.glob("temp/*_*.nc"):
             file.unlink()
         progress.remove_task(chunk_task)
     progress.update(
@@ -235,9 +411,28 @@ def compute_zonal_stats(
     logger.info(
         f"Forcing generation complete! Zonal stats computed in {time.time() - timer_start:2f} seconds"
     )
-    write_outputs(forcings_dir, variables)
+    write_outputs(forcings_dir, variables, units)
 
-def write_outputs(forcings_dir, variables):
+
+def write_outputs(forcings_dir: Path,
+                  variables: dict,
+                  units: dict) -> None:
+    '''  
+    Write outputs to disk in the form of a NetCDF file, using dask clusters to
+    facilitate parallel computing.
+
+    Parameters
+    ----------
+    forcings_dir : Path
+        Path to directory where outputs are to be stored.
+    variables : dict
+        Preset dictionary where the keys are forcing variable names and the 
+        values are units.
+    units : dict
+        Dictionary where the keys are forcing variable names and the values are 
+        units. Differs from variables, as this dictionary depends on the gridded
+        forcing dataset.
+    '''
 
     # start a dask cluster if there isn't one already running
     try:
@@ -245,12 +440,15 @@ def write_outputs(forcings_dir, variables):
     except ValueError:
         cluster = LocalCluster()
         client = Client(cluster)
-
+    temp_forcings_dir = forcings_dir / "temp"
     # Combine all variables into a single dataset using dask
-    results = [xr.open_dataset(file, chunks="auto") for file in forcings_dir.glob("*.nc")]
+    results = [xr.open_dataset(file, chunks="auto") for file in temp_forcings_dir.glob("*.nc")]
     final_ds = xr.merge(results)
-
-    output_folder = forcings_dir / "by_catchment"
+    for var in final_ds.data_vars:
+        if var in units:
+            final_ds[var].attrs["units"] = units[var]
+        else:
+            logger.warning(f"Variable {var} has no units")
 
     rename_dict = {}
     for key, value in variables.items():
@@ -288,19 +486,25 @@ def write_outputs(forcings_dir, variables):
     final_ds["Time"].attrs["units"] = "s"
     final_ds["Time"].attrs["epoch_start"] = "01/01/1970 00:00:00" # not needed but suppresses the ngen warning
 
-    final_ds.to_netcdf(output_folder / "forcings.nc", engine="netcdf4")
-    # delete the individual variable files
-    for file in forcings_dir.glob("*.nc"):
+    final_ds.to_netcdf(forcings_dir / "forcings.nc", engine="netcdf4")
+    # close the datasets
+    _ = [result.close() for result in results]
+    final_ds.close()
+
+    # clean up the temp files
+    for file in temp_forcings_dir.glob("*.*"):
         file.unlink()
+    temp_forcings_dir.rmdir()
 
 
 def setup_directories(cat_id: str) -> file_paths:
     forcing_paths = file_paths(cat_id)
-    if forcing_paths.forcings_dir.exists():
-        logger.info("Forcings directory already exists, deleting")
-        shutil.rmtree(forcing_paths.forcings_dir)
-    for folder in ["by_catchment", "temp"]:
-        os.makedirs(forcing_paths.forcings_dir / folder, exist_ok=True)
+    # delete everything in the forcing folder except the cached nc file
+    for file in forcing_paths.forcings_dir.glob("*.*"):
+        if file != forcing_paths.cached_nc_file:
+            file.unlink()
+
+    os.makedirs(forcing_paths.forcings_dir / "temp", exist_ok=True)
 
     return forcing_paths
 
@@ -320,7 +524,7 @@ def create_forcings(
     if type(end_time) == datetime:
         end_time = end_time.strftime("%Y-%m-%d %H:%M")
 
-    merged_data = get_forcing_data(forcing_paths, start_time, end_time, gdf, forcing_vars)
+    merged_data = get_forcing_data(forcing_paths.cached_nc_file, start_time, end_time, gdf, forcing_vars)
     compute_zonal_stats(gdf, merged_data, forcing_paths.forcings_dir)
 
 

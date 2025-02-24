@@ -1,6 +1,7 @@
 import json
 import logging
 from datetime import datetime
+from pathlib import Path
 
 from data_processing.create_realization import create_realization
 from data_processing.file_paths import file_paths
@@ -43,7 +44,7 @@ def subset_selection():
     subset_name = cat_ids[0]
     run_paths = file_paths(subset_name)
     subset(cat_ids, output_gpkg_path=run_paths.geopackage_path)
-    return run_paths.geopackage_path, 200
+    return str(run_paths.geopackage_path), 200
 
 
 @main.route("/subset_to_file", methods=["POST"])
@@ -65,7 +66,9 @@ def subset_to_file():
 def get_forcings():
     # body: JSON.stringify({'forcing_dir': forcing_dir, 'start_time': start_time, 'end_time': end_time}),
     data = json.loads(request.data.decode("utf-8"))
-    cat_id = data.get("forcing_dir").split("/")[-1]
+    subset_gpkg = Path(data.get("forcing_dir").split("subset to ")[-1])
+    output_folder = subset_gpkg.parent.parent.stem
+
     start_time = data.get("start_time")
     end_time = data.get("end_time")
     # get the forcings
@@ -77,7 +80,7 @@ def get_forcings():
     app.debug = False
     logger.info(f"get_forcings() disabled debug mode at {datetime.now()}")
     try:
-        create_forcings(start_time, end_time, cat_id)
+        create_forcings(start_time, end_time, output_folder)
     except Exception as e:
         logger.info(f"get_forcings() failed with error: {str(e)}")
         return jsonify({"error": str(e)}), 500
@@ -90,13 +93,14 @@ def get_forcings():
 def get_realization():
     # body: JSON.stringify({'forcing_dir': forcing_dir, 'start_time': start_time, 'end_time': end_time}),
     data = json.loads(request.data.decode("utf-8"))
-    cat_id = data.get("forcing_dir").split("/")[-1]
+    subset_gpkg = Path(data.get("forcing_dir").split("subset to ")[-1])
+    output_folder = subset_gpkg.parent.parent.stem
     start_time = data.get("start_time")
     end_time = data.get("end_time")
     # get the forcings
     start_time = datetime.strptime(start_time, "%Y-%m-%dT%H:%M")
     end_time = datetime.strptime(end_time, "%Y-%m-%dT%H:%M")
-    create_realization(cat_id, start_time, end_time)
+    create_realization(output_folder, start_time, end_time)
     return "success", 200
 
 
@@ -119,4 +123,4 @@ def get_logs():
                     break
             return jsonify({"logs": reversed_lines}), 200
     except Exception as e:
-        return jsonify({"error": str(e)})
+        return jsonify({"error": "unable to fetch logs"})

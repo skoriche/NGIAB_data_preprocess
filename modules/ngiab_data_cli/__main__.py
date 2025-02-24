@@ -124,7 +124,7 @@ def validate_run_directory(args, paths: file_paths):
 
 def main() -> None:
     setup_logging()
-
+    validate_all()
     try:
         args = parse_arguments()
         if args.debug:
@@ -134,7 +134,7 @@ def main() -> None:
         paths.append_cli_command(sys.argv)
         args = set_dependent_flags(args, paths)  # --validate
         if feature_to_subset:
-            logging.info(f"Subsetting {feature_to_subset} to {paths.output_dir}")
+            logging.info(f"Processing {feature_to_subset} in {paths.output_dir}")
             if not args.vpu:
                 upstream_count = len(get_upstream_cats(feature_to_subset))
                 logging.info(f"Upstream catchments: {upstream_count}")
@@ -257,5 +257,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    validate_all()
     main()

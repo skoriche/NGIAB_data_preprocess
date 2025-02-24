@@ -40,6 +40,25 @@ def load_zarr_datasets(forcing_vars: list[str] = None) -> xr.Dataset:
 
 
 def validate_time_range(dataset: xr.Dataset, start_time: str, end_time: str) -> Tuple[str, str]:
+    '''
+    Ensure that all selected times are in the passed dataset.
+
+    Parameters
+    ----------
+    dataset : xr.Dataset
+        Dataset with a time coordinate.
+    start_time : str
+        Desired start time in YYYY/MM/DD HH:MM:SS format.
+    end_time : str
+        Desired end time in YYYY/MM/DD HH:MM:SS format.
+
+    Returns
+    -------
+    str
+        start_time, or if not available, earliest available timestep in dataset.
+    str
+        end_time, or if not available, latest available timestep in dataset.
+    '''
     end_time_in_dataset = dataset.time.isel(time=-1).values
     start_time_in_dataset = dataset.time.isel(time=0).values
     if np.datetime64(start_time) < start_time_in_dataset:
@@ -58,7 +77,26 @@ def validate_time_range(dataset: xr.Dataset, start_time: str, end_time: str) -> 
 def clip_dataset_to_bounds(
     dataset: xr.Dataset, bounds: Tuple[float, float, float, float], start_time: str, end_time: str
 ) -> xr.Dataset:
-    """Clip the dataset to specified geographical bounds."""
+     """
+    Clip the dataset to specified geographical bounds.
+
+    Parameters
+    ----------
+    dataset : xr.Dataset
+        Dataset to be clipped.
+    bounds : tuple[float, float, float, float]
+        Corners of bounding box. bounds[0] is x_min, bounds[1] is y_min, 
+        bounds[2] is x_max, bounds[3] is y_max.
+    start_time : str
+        Desired start time in YYYY/MM/DD HH:MM:SS format.
+    end_time : str
+        Desired end time in YYYY/MM/DD HH:MM:SS format.
+    
+    Returns
+    -------
+    xr.Dataset
+        Clipped dataset.
+    """
     # check time range here in case just this function is imported and not the whole module
     start_time, end_time = validate_time_range(dataset, start_time, end_time)
     dataset = dataset.sel(
@@ -100,18 +138,18 @@ def compute_store(stores: xr.Dataset, cached_nc_path: Path) -> xr.Dataset:
 
 
 def get_forcing_data(
-    forcing_paths: file_paths,
+    cached_nc_path: Path,
     start_time: str,
     end_time: str,
     gdf: gpd.GeoDataFrame,
     forcing_vars: list[str] = None,
 ) -> xr.Dataset:
     merged_data = None
-    if os.path.exists(forcing_paths.cached_nc_file):
+    if os.path.exists(cached_nc_path):
         logger.info("Found cached nc file")
         # open the cached file and check that the time range is correct
         cached_data = xr.open_mfdataset(
-            forcing_paths.cached_nc_file, parallel=True, engine="h5netcdf"
+            cached_nc_path, parallel=True, engine="h5netcdf"
         )
         range_in_cache = cached_data.time[0].values <= np.datetime64(
             start_time
@@ -138,14 +176,14 @@ def get_forcing_data(
 
         if range_in_cache:
             logger.info("Time range is within cached data")
-            logger.debug(f"Opened cached nc file: [{forcing_paths.cached_nc_file}]")
+            logger.debug(f"Opened cached nc file: [{cached_nc_path}]")
             merged_data = clip_dataset_to_bounds(
                 cached_data, gdf.total_bounds, start_time, end_time
             )
             logger.debug("Clipped stores")
         else:
             logger.info("Time range is incorrect")
-            os.remove(forcing_paths.cached_nc_file)
+            os.remove(cached_nc_path)
             logger.debug("Removed cached nc file")
 
     if merged_data is None:
@@ -155,7 +193,7 @@ def get_forcing_data(
         logger.debug("Got zarr stores")
         clipped_store = clip_dataset_to_bounds(lazy_store, gdf.total_bounds, start_time, end_time)
         logger.info("Clipped forcing data to bounds")
-        merged_data = compute_store(clipped_store, forcing_paths.cached_nc_file)
+        merged_data = compute_store(clipped_store, cached_nc_path)
         logger.info("Forcing data loaded and cached")
         # close the event loop
 

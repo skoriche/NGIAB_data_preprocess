@@ -56,6 +56,11 @@ plot = ["ngiab_eval[plot]"]
 Homepage = "https://github.com/CIROH-UA/NGIAB_data_preprocess"
 Issues = "https://github.com/CIROH-UA/NGIAB_data_preprocess/issues"
 
+[project.scripts]
+cli = "ngiab_data_cli.__main__:main"
+map_app = "map_app.__main__:main"
+forcings = "ngiab_data_cli.forcing_cli:main"
+
 [build-system]
 # scm adds files tracked by git to the package
 requires = ["setuptools>=69.0", "setuptools-scm>=8.0"]
