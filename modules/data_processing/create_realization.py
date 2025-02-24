@@ -103,16 +103,24 @@ def make_noahowp_config(
 
     for divide in divide_conf_df.index:
         with open(cat_config_dir / f"{divide}.input", "w") as file:
+            soil_type = int(divide_conf_df.loc[divide, "mode.ISLTYP"])
+            # due to resampling uncertainty, sometimes the lake type is not assigned a lake vegetation
+            # noah-owp-modular does not like this so we'll hard code it to 16 rather than modifying the hydrofabric
+            # some versions of noah-owp-modular check this, some don't
+            if soil_type == 14:
+                veg_type = 16
+            else:
+                veg_type = int(divide_conf_df.loc[divide, "mode.IVGTYP"])
             file.write(
                 template.format(
                     start_datetime=start_datetime,
                     end_datetime=end_datetime,
                     lat=divide_conf_df.loc[divide, "latitude"],
                     lon=divide_conf_df.loc[divide, "longitude"],
-                    terrain_slope= divide_conf_df.loc[divide, "mean.slope_1km"],
-                    azimuth= divide_conf_df.loc[divide, "circ_mean.aspect"],
-                    ISLTYP=int(divide_conf_df.loc[divide, "mode.ISLTYP"]),
-                    IVGTYP=int(divide_conf_df.loc[divide, "mode.IVGTYP"]),
+                    terrain_slope=divide_conf_df.loc[divide, "mean.slope_1km"],
+                    azimuth=divide_conf_df.loc[divide, "circ_mean.aspect"],
+                    ISLTYP=soil_type,
+                    IVGTYP=veg_type,
                 )
             )
 
