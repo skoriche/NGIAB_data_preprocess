@@ -77,7 +77,7 @@ def validate_time_range(dataset: xr.Dataset, start_time: str, end_time: str) -> 
 def clip_dataset_to_bounds(
     dataset: xr.Dataset, bounds: Tuple[float, float, float, float], start_time: str, end_time: str
 ) -> xr.Dataset:
-     """
+    """
     Clip the dataset to specified geographical bounds.
 
     Parameters
@@ -85,13 +85,13 @@ def clip_dataset_to_bounds(
     dataset : xr.Dataset
         Dataset to be clipped.
     bounds : tuple[float, float, float, float]
-        Corners of bounding box. bounds[0] is x_min, bounds[1] is y_min, 
+        Corners of bounding box. bounds[0] is x_min, bounds[1] is y_min,
         bounds[2] is x_max, bounds[3] is y_max.
     start_time : str
         Desired start time in YYYY/MM/DD HH:MM:SS format.
     end_time : str
         Desired end time in YYYY/MM/DD HH:MM:SS format.
-    
+
     Returns
     -------
     xr.Dataset

@@ -71,7 +71,7 @@
                   "ice_fraction_xinanjiang": "sloth_ice_fraction_xinanjiang",
                   "soil_moisture_profile": "sloth_soil_moisture_profile"
                 },
-                "library_file": "/dmod/shared_libs/libcfebmi.so.2.0.0"
+                "library_file": "/dmod/shared_libs/libcfebmi.so"
               }
             }
           ],
