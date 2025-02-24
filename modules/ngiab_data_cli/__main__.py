@@ -190,7 +190,7 @@ def main() -> None:
             # value error is raised if no client is running
             pass
 
-        if args.run:
+        if args.run and not args.cal:
             logging.info("Running Next Gen using NGIAB...")
             # open the partitions.json file and get the number of partitions
             with open(paths.metadata_dir / "num_partitions", "r") as f:
@@ -242,8 +242,22 @@ def main() -> None:
             create_calibration_config(paths.output_dir,  args.input_feature.replace("_", "-"))
             logging.info("Calibration config created.")
             logging.info(f"This is still experimental, run the following command to start calibration:")
-            logging.info(f'docker run -it -v "{paths.output_dir}:/ngen/ngen/data" -v "/etc/passwd:/etc/passwd" joshcu/ngiab-cal')
+            logging.info(
+                f'docker run -it -v "{paths.output_dir}:/ngen/ngen/data" joshcu/ngiab-cal'
+            )
 
+            if args.run:
+                try:
+                    subprocess.run("docker pull joshcu/ngiab-cal", shell=True)
+                except:
+                    logging.error("Docker is not running, please start Docker and try again.")
+                logging.warning("Beginning calibration...")
+                try:
+                    command = f'docker run --rm -it -v "{str(paths.subset_dir)}:/ngen/ngen/data" joshcu/ngiab-cal /calibration/run.sh'
+                    subprocess.run(command, shell=True)
+                    logging.info("Calibration complete.")
+                except:
+                    logging.error("Calibration failed.")
 
         logging.info("All operations completed successfully.")
         logging.info(f"Output folder: file:///{paths.output_dir}")

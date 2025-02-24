@@ -113,12 +113,6 @@ class file_paths:
         with open(self.metadata_dir / "cli_commands_history.txt", "a") as f:
             f.write(f"{current_time}| {command_string}\n")
 
-    def append_cli_command(self, command: list[str]) -> None:
-        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        command_string = " ".join(command)
-        with open(self.metadata_dir / "cli_commands_history.txt", "a") as f:
-            f.write(f"{current_time}| {command_string}\n")
-
     def setup_run_folders(self) -> None:
         folders = [
             "outputs",
