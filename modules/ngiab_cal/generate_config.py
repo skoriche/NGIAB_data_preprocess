@@ -233,7 +233,7 @@ def generate_best_realization(calibration_dir: Path) -> None:
             model_params = {}
             for parameter_name in parameters[module_name]:
                 if parameter_name in best_params:
-                    model_params[parameter_name] = best_params[parameter_name][0]
+                    model_params[parameter_name] = best_params[parameter_name].values[0]
             module["params"]["model_params"] = model_params
 
     with open(output_realization, "w") as f:
