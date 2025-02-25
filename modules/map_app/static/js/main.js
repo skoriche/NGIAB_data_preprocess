@@ -106,6 +106,23 @@ map.on('click', 'conus_gages', (e) => {
 }
 );
 show = false;
+
+// TOGGLE BUTTON LOGIC
+const toggleInput = document.querySelector('.toggle-input');
+const toggleHandle = document.querySelector('.toggle-handle');
+
+// Set initial text based on the default state
+toggleHandle.textContent = toggleInput.checked ? 'AORC' : 'NWM';
+
+toggleInput.addEventListener('change', function() {
+    if (this.checked) {
+        toggleHandle.textContent = 'AORC'; // Update handle text to AORC
+    } else {
+        toggleHandle.textContent = 'NWM'; // Update handle text to NWM
+    }
+});
+
+show = false;
 const toggleButton = document.querySelector('#toggle-button');
 toggleButton.addEventListener('click', () => {
     if (show) {
