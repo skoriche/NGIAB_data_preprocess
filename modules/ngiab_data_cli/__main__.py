@@ -265,7 +265,7 @@ def main() -> None:
             if calibration_worker_dir.exists():
                 logging.info("Calibration has been run.")
                 logging.info(
-                    f"Generating best realization to {paths.output_dir / "config" / "best_realization.json" }..."
+                    f"Generating best realization to {paths.output_dir / 'config' / 'best_realization.json' }..."
                 )
                 generate_best_realization(paths.calibration_dir)
 
