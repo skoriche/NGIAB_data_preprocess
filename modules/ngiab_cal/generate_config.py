@@ -168,7 +168,7 @@ def create_calibration_config(calibration_dir: Path, gage_id: str) -> None:
 def generate_best_realization(calibration_dir: Path) -> None:
     # this relies too much on the folder structure of this, ngiab, and ngen-cal
     output_realization = calibration_dir / "../config/" / "best_realization.json"
-    source_realization = calibration_dir / "realization.json"
+    source_realization = calibration_dir / "../config/" / "realization.json"
 
     # read the calibration config to figure out what parameters belong to which model
     calibration_config = calibration_dir / "ngen_cal_conf.yaml"
