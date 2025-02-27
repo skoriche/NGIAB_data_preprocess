@@ -194,12 +194,12 @@ def main() -> None:
                 num_partitions = int(f.read())
 
             try:
-                subprocess.run("docker pull joshcu/ngiab", shell=True)
+                subprocess.run("docker pull awiciroh/ciroh-ngen-image:latest", shell=True)
             except:
                 logging.error("Docker is not running, please start Docker and try again.")
             try:
-                command = f'docker run --rm -it -v "{str(paths.subset_dir)}:/ngen/ngen/data" joshcu/ngiab /ngen/ngen/data/ auto {num_partitions} local'
-                # command = f'docker run --rm -it -v "{str(paths.subset_dir)}:/ngen/ngen/data" awiciroh/ciroh-ngen-image:latest-x86 /ngen/ngen/data/ auto {num_partitions}'
+                #command = f'docker run --rm -it -v "{str(paths.subset_dir)}:/ngen/ngen/data" joshcu/ngiab /ngen/ngen/data/ auto {num_partitions} local'
+                command = f'docker run --rm -it -v "{str(paths.subset_dir)}:/ngen/ngen/data" awiciroh/ciroh-ngen-image:latest /ngen/ngen/data/ auto {num_partitions} local'
                 subprocess.run(command, shell=True)
                 logging.info("Next Gen run complete.")
             except:
