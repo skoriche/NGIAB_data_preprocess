@@ -253,7 +253,7 @@ def main() -> None:
                     logging.error("Docker is not running, please start Docker and try again.")
                 logging.warning("Beginning calibration...")
                 try:
-                    command = f'docker run --rm -it -v "{str(paths.subset_dir)}:/ngen/ngen/data" joshcu/ngiab-cal /calibration/run.sh'
+                    command = f'docker run --rm -it -v "{str(paths.subset_dir)}:/ngen/ngen/data" --user $(id -u):$(id -g) joshcu/ngiab-cal /calibration/run.sh'
                     subprocess.run(command, shell=True)
                     logging.info("Calibration complete.")
                 except:
