@@ -171,6 +171,9 @@ def main() -> None:
             logging.info("Forcings generation complete.")
 
         if args.realization:
+            gage_id = None
+            if args.gage:
+                gage_id = args.input_feature
             logging.info(f"Creating realization from {args.start_date} to {args.end_date}...")
             if args.empirical_model:
                 create_em_realization(
@@ -178,7 +181,11 @@ def main() -> None:
                 )
             else:
                 create_realization(
-                    output_folder, start_time=args.start_date, end_time=args.end_date, use_nwm_gw=args.nwm_gw
+                    output_folder,
+                    start_time=args.start_date,
+                    end_time=args.end_date,
+                    use_nwm_gw=args.nwm_gw,
+                    gage_id=gage_id,
                 )
             logging.info("Realization creation complete.")
 
