@@ -56,6 +56,26 @@ var map = new maplibregl.Map({
     center: [-96, 40], // starting position [lng, lat]
     zoom: 4 // starting zoom
 });
+
+map.on('load', () => {
+       map.addSource('camels_basins', {
+           'type': 'vector',
+           'url': 'pmtiles://https://communityhydrofabric.s3.us-east-1.amazonaws.com/map/camels.pmtiles'
+       });
+       map.addLayer({       
+         "id": "camels",
+         "type": "line",
+         "source": "camels_basins",
+         "source-layer": "camels_basins",
+         "layout": {},
+         "filter": ["any", ["==", "hru_id", ""]],
+         "paint": {
+           "line-width": 1.5,
+           "line-color": ["rgba", 134, 30, 232, 1]
+         }       
+       });
+});
+
 function update_map(cat_id, e) {
     $('#selected-basins').text(cat_id)
     map.setFilter('selected-catchments', ['any', ['in', 'divide_id', cat_id]]);
@@ -146,16 +166,30 @@ function initializeToggleSwitches() {
 document.addEventListener('DOMContentLoaded', initializeToggleSwitches);
 
 
-show = false;
-const toggleButton = document.querySelector('#toggle-button');
-toggleButton.addEventListener('click', () => {
-    if (show) {
+showGages = false;
+const toggleButtonGages = document.querySelector('#toggle-button-gages');
+toggleButtonGages.addEventListener('click', () => {
+    if (showGages) {
         map.setFilter('conus_gages', ['any', ['==', 'hl_uri', ""]])
-        toggleButton.innerText = 'Show gages';
-        show = false;
+        toggleButtonGages.innerText = 'Show gages';
+        showGages = false;
     } else {
         map.setFilter('conus_gages', null)
-        toggleButton.innerText = 'Hide gages';
-        show = true;
+        toggleButtonGages.innerText = 'Hide gages';
+        showGages = true;
+    }
+});
+
+showCamels = false;
+const toggleButtonCamels = document.querySelector('#toggle-button-camels');
+toggleButtonCamels.addEventListener('click', () => {
+    if (showCamels) {
+        map.setFilter('camels', ['any', ['==', 'hru_id', ""]])
+        toggleButtonCamels.innerText = 'Show CAMELS basins';
+        showCamels = false;
+    } else {
+        map.setFilter('camels', null)
+        toggleButtonCamels.innerText = 'Hide CAMELS basins';
+        showCamels = true;
     }
 });
