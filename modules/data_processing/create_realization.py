@@ -11,7 +11,7 @@ import pandas
 import requests
 import s3fs
 import xarray as xr
-from dask.distributed import Client, LocalCluster
+from data_processing.dask_utils import temp_cluster
 from data_processing.file_paths import file_paths
 from data_processing.gpkg_utils import (
     GeoPackage,
@@ -25,6 +25,7 @@ from tqdm.rich import tqdm
 logger = logging.getLogger(__name__)
 
 
+@temp_cluster
 def get_approximate_gw_storage(paths: file_paths, start_date: datetime):
     # get the gw levels from the NWM output on a given start date
     # this kind of works in place of warmstates for now
@@ -34,13 +35,6 @@ def get_approximate_gw_storage(paths: file_paths, start_date: datetime):
 
     fs = s3fs.S3FileSystem(anon=True)
     nc_url = f"s3://noaa-nwm-retrospective-3-0-pds/CONUS/netcdf/GWOUT/{year}/{formatted_dt}.GWOUT_DOMAIN1"
-
-    # make sure there's a dask cluster running
-    try:
-        client = Client.current()
-    except ValueError:
-        cluster = LocalCluster()
-        client = Client(cluster)
 
     with fs.open(nc_url) as file_obj:
         ds = xr.open_dataset(file_obj)

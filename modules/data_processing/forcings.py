@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 import psutil
 import xarray as xr
-from dask.distributed import Client, LocalCluster
+from data_processing.dask_utils import no_cluster, use_cluster
 from data_processing.dataset_utils import validate_dataset_format
 from data_processing.file_paths import file_paths
 from exactextract import exact_extract
@@ -305,6 +305,7 @@ def get_units(dataset: xr.Dataset) -> dict:
     return units
 
 
+@no_cluster
 def compute_zonal_stats(
     gdf: gpd.GeoDataFrame, gridded_data: xr.Dataset, forcings_dir: Path
 ) -> None:
@@ -366,7 +367,9 @@ def compute_zonal_stats(
             shm, shape, dtype = create_shared_memory(data_chunk)
             times = data_chunk.time.values
             # create a partial function to pass to the multiprocessing pool
-            partial_process_chunk = partial(process_chunk_shared,variable,times,shm.name,shape,dtype)
+            partial_process_chunk = partial(
+                process_chunk_shared, variable, times, shm.name, shape, dtype
+            )
 
             logger.debug(f"Processing variable: {variable}")
             # process the chunks of catchments in parallel
@@ -411,6 +414,7 @@ def compute_zonal_stats(
     write_outputs(forcings_dir, units)
 
 
+@use_cluster
 def write_outputs(forcings_dir: Path, units: dict) -> None:
     """
     Write outputs to disk in the form of a NetCDF file, using dask clusters to
@@ -428,13 +432,6 @@ def write_outputs(forcings_dir: Path, units: dict) -> None:
         units. Differs from variables, as this dictionary depends on the gridded
         forcing dataset.
     """
-
-    # start a dask cluster if there isn't one already running
-    try:
-        client = Client.current()
-    except ValueError:
-        cluster = LocalCluster()
-        client = Client(cluster)
     temp_forcings_dir = forcings_dir / "temp"
     # Combine all variables into a single dataset using dask
     results = [xr.open_dataset(file, chunks="auto") for file in temp_forcings_dir.glob("*.nc")]
@@ -471,14 +468,18 @@ def write_outputs(forcings_dir: Path, units: dict) -> None:
         time_array = (
             final_ds.time.astype("datetime64[s]").astype(np.int64).values // 10**9
         )  ## convert from ns to s
-    time_array = time_array.astype(np.int32) ## convert to int32 to save space
-    final_ds = final_ds.drop_vars(["catchment", "time"]) ## drop the original time and catchment vars
-    final_ds = final_ds.rename_dims({"catchment": "catchment-id"}) # rename the catchment dimension
+    time_array = time_array.astype(np.int32)  ## convert to int32 to save space
+    final_ds = final_ds.drop_vars(
+        ["catchment", "time"]
+    )  ## drop the original time and catchment vars
+    final_ds = final_ds.rename_dims({"catchment": "catchment-id"})  # rename the catchment dimension
     # add the time as a 2d data var, yes this is wasting disk space.
     final_ds["Time"] = (("catchment-id", "time"), [time_array for _ in range(len(final_ds["ids"]))])
     # set the time unit
     final_ds["Time"].attrs["units"] = "s"
-    final_ds["Time"].attrs["epoch_start"] = "01/01/1970 00:00:00" # not needed but suppresses the ngen warning
+    final_ds["Time"].attrs["epoch_start"] = (
+        "01/01/1970 00:00:00"  # not needed but suppresses the ngen warning
+    )
 
     final_ds.to_netcdf(forcings_dir / "forcings.nc", engine="netcdf4")
     # close the datasets
