@@ -1,19 +1,20 @@
 import gzip
+import json
 import os
 import tarfile
 import warnings
-import json
-import requests
-from data_processing.file_paths import file_paths
-from tqdm import TqdmExperimentalWarning
 from time import sleep
+
 import boto3
-from botocore.exceptions import ClientError
-from boto3.s3.transfer import TransferConfig
-from rich.console import Console
-from rich.prompt import Prompt
-from rich.progress import Progress, TextColumn, TimeElapsedColumn, SpinnerColumn
 import psutil
+import requests
+from boto3.s3.transfer import TransferConfig
+from botocore.exceptions import ClientError
+from data_processing.file_paths import file_paths
+from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
+from rich.prompt import Prompt
+from tqdm import TqdmExperimentalWarning
 
 warnings.filterwarnings("ignore", category=TqdmExperimentalWarning)
 
@@ -95,11 +96,11 @@ def download_from_s3(save_path, bucket=S3_BUCKET, key=S3_KEY, region=S3_REGION):
 
     console.print(f"Downloading {key} to {save_path}...", style="bold green")
     console.print(
-        f"The file downloads faster with no progress indicator, this should take around 30s",
+        "The file downloads faster with no progress indicator, this should take around 30s",
         style="bold yellow",
     )
     console.print(
-        f"Please use network monitoring on your computer if you wish to track the download",
+        "Please use network monitoring on your computer if you wish to track the download",
         style="green",
     )
 

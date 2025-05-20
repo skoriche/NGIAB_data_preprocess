@@ -32,7 +32,7 @@ class S3ParallelFileSystem(S3FileSystem):
                     "head_object", Bucket=bucket, Key=key, **version_kw, **self.req_kw
                 )
             )["ContentLength"]
-        except Exception as e:
+        except Exception:
             # Fall back to single request if HEAD fails
             return await self._download_chunk(bucket, key, {}, version_kw)
 

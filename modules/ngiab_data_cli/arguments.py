@@ -1,6 +1,5 @@
 import argparse
 from datetime import datetime
-from data_processing.file_paths import file_paths
 
 # Constants
 DATE_FORMAT = "%Y-%m-%d"  # used for datetime parsing
